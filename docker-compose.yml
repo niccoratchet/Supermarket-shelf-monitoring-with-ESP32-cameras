@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  mqtt-broker:
+    build: .
+    image: eclipse-mosquitto:latest
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"         # MQTT communication port
+      - "9001:9001"         # WebSockets port (for access via browser)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
