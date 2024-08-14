@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
   mqtt-broker:
-    build: .
     image: eclipse-mosquitto:latest
     container_name: mqtt-broker
     ports:
@@ -13,8 +12,18 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
     networks:
-      - mqtt-network
+      - network
+  
+  webserver:
+    build:
+      context: ./flask-app
+      dockerfile: Dockerfile
+    container_name: flask-webserver
+    ports:
+      - "5000:5000"
+    networks:
+      - network
 
 networks:
-  mqtt-network:
+  network:
     driver: bridge
