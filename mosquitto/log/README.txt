@@ -1,0 +1,1 @@
+In this folder a log file appears when the Broker is started for the first time.
