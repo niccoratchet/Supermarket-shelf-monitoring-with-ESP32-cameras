@@ -1,9 +1,16 @@
-from flask import Flask
+from flask import Flask, jsonify
 import paho.mqtt.client as mqtt
 import logging
 import os
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+
+# Database's configuration.
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://admin:dbpass@db:5432/shelves-db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
 
 # MQTT Broker's configuration. The values are read from the environment variables
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker")                   # Broker MQTT container's name
@@ -43,9 +50,44 @@ mqtt_client.on_message = on_message
 mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)  # Connect to the broker
 mqtt_client.loop_start()  # Start the MQTT client's loop in a separate thread
 
+class Shelf(db.Model):
+    __tablename__ = 'shelf'
+
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    cameraid = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f'<Shelf {self.number} - {self.description}>'
+    
+def initialize_database():
+    with app.app_context():
+        db.create_all()
+        if Shelf.query.count() == 0:
+            inital_shelves = [Shelf(number=1, description="Pasta", cameraid=1), Shelf(number=2, description="Bath", cameraid=2)]
+            db.session.bulk_save_objects(inital_shelves)
+            db.session.commit()
+
+
 @app.route('/')
 def home():
     return "Hello, Flask with MQTT!"
 
+@app.route('/shelves')
+def shelves():
+    shelves = Shelf.query.all()
+    results = [
+        {
+            "id": shelf.id,
+            "number": shelf.number,
+            "description": shelf.description,
+            "id_camera": shelf.cameraid
+        } for shelf in shelves
+    ]
+
+    return jsonify(results)
+
 if __name__ == "__main__":
+    initialize_database()
     app.run(host='0.0.0.0', port=5000)
