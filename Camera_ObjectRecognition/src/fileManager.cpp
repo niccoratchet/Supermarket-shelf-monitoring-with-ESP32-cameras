@@ -100,7 +100,7 @@ bool saveConfig(const char *filename, Config *config) {
     Serial.println("Error: it's impossible to open the 'config.txt' file");
     return false;
   }
-  file.println("cameraID=1");
+  file.println("cameraID=" + config -> cameraID);
   file.println("ssid=" + config -> ssid);
   file.println("password=" + config -> password);
   file.println("mqtt_server=" + config -> mqtt_server);

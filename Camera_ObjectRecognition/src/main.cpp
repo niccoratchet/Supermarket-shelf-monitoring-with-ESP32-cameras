@@ -14,7 +14,7 @@
 /**
     NOTE: The library used for importing the ML model is .ZIP file: "timer_camera_object_recognition-V23.zip" where "timer_camera_object_recognition" is the name of the project in Edge Impulse, 
     and "V23" is the version of the library (it can be different if you have a different project name and different version).
-    The fact that the model is separeted from this program permits us to change it whenever we want.
+    The fact that the model is separated from this program permits us to change it whenever we want.
     This can happen when we want to get a better trained model: once we obtained it, we can use it in this program importing the exact same library.
     In order to change the library version, you have to first delete the previous one. You can go to your project folder and delete folders: "edge-impulse-sdk", "model-parameters", "tflite-model".
     Then you can import the new library version's folders in the same location inside the project folder.
@@ -109,7 +109,7 @@
 /**
  *   NOTE: The 2 following parameters have to match the photo resolution present in the following object "camera_config".
            For example, if in camera_config we have ".frame_size = FRAMESIZE_QVGA", these two parameters has to be 320 & 240 (QVGA = 320x240).
-           If not, the programm will crash when it will be asked to do the object recognition.
+           If not, the program will crash when it will be asked to do the object recognition.
 */
 
 #define EI_CAMERA_RAW_FRAME_BUFFER_COLS           320
@@ -200,7 +200,7 @@ const char* config_html = R"rawliteral(
 </html>
 )rawliteral";
 
-//  HTML page containing a message to the user about the successfull camera configuration
+//  HTML page containing a message to the user about the successful camera configuration
 const char* confirmationPage_html = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -223,6 +223,7 @@ WebServer server(80);
 bool serverActive = true;
 unsigned long startWaitingTime;
 const unsigned long waitingDuration = 100000;         // It indicates the time the camera will wait until it start the configuration process with the parameters saved in the 'config.txt' file
+volatile bool isIDSet = false;                              // It indicates if the camera has already an ID set by the back-end
 
 // Functions definition
 bool setup_wifi();
@@ -233,60 +234,7 @@ bool ei_camera_init(void);
 void ei_camera_deinit(void);
 bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf);
 static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr);
-void sendSetUpInformation();
-
-void setup() {
- 
-  Serial.begin(115200);
-  Serial.println("Starting setup...");
-  if(!initializeFileSystem()) {
-    Serial.println("Error while initializing the file system");
-    return;
-  }
-  verifyFilePresence("/config.html", config_html);
-  verifyFilePresence("/confirmationPage.html", confirmationPage_html);
-  client.setServer(config.mqtt_server.c_str(), 1883);
-  if (ei_camera_init() == false) {
-      ei_printf("Failed to initialize Camera!\r\n");
-  }
-  else {
-      ei_printf("Camera initialized\r\n");
-  }       
-  configWebServer();
-  startWaitingTime = millis();
-  Serial.println("Waiting for user's configuration...");
-
-}
-
-void loop() {
-
-  unsigned long currentTime = millis();
-  if (serverActive) {
-    server.handleClient();
-    if(currentTime - startWaitingTime >= waitingDuration) {       // Starting waiting for 5 minutes before using already existing parameters in the 'config.txt' file
-      serverActive = false;
-      Serial.println("Timer expired, stopping server...");
-      server.stop();
-      if(!loadCredentials(&config)) {
-        Serial.println("Error while extracting configuration data from 'config.txt'.");
-        return;
-      }
-      if (setup_wifi()) {
-        if(testMQTTConnection(&client, &config)) {
-          Serial.println("MQTT Broker reachable");
-          WiFi.softAPdisconnect(true);
-          Serial.println("Access Point stopped");
-          sendSetUpInformation();
-          MQTTTopic = "inference/" + config.cameraID;     
-        }
-      }
-    }
-  }
-  else {
-    scanForObjects();
-  }
-  
-}
+bool sendSetUpInformation();
 
 /**
     setup_wifi() permits to connect the camera at the Wi-FI network
@@ -316,7 +264,12 @@ bool setup_wifi() {
  
 }
 
-void sendSetUpInformation() {
+/**
+    sendSetUpInformation() sends a message to the back-end server requesting a new ID. The camera will wait for the ID to be set by the back-end listening to the topic "newID/#".
+    After that the camera will unsubscribe from the topic and the configuration process will be completed.
+*/
+
+bool sendSetUpInformation() {
 
   String inferenceCategories = "";
   int dimension = sizeof(ei_classifier_inferencing_categories) / 4;
@@ -325,8 +278,57 @@ void sendSetUpInformation() {
       inferenceCategories = inferenceCategories + ei_classifier_inferencing_categories[i]+ " ";
   }
   Serial.println("Sending configuration info");
-  String connectedCameraTopic = "cameraConnected/" + config.cameraID;
-  sendMQTTMessage(&client, connectedCameraTopic, inferenceCategories.c_str(), 0, true, &config);
+  String connectedCameraTopic = "cameraConnected/N";                          // The camera sends a message to the MQTT Broker in order to inform that needs a new ID
+
+  Serial.println("Subscribing to topic newID/#");                             // The camera subscribes to the topic "newID/#" in order to receive the camera's ID
+  if (client.subscribe("newID/#")) {
+      Serial.println("Subscription successful");
+  } else {
+      Serial.println("Subscription failed");
+      return false;
+  }
+
+  sendMQTTMessage(&client, connectedCameraTopic, inferenceCategories.c_str(), 0, true, &config);    // The camera sends the message to the MQTT Broker requesting a new ID
+
+  unsigned long startAttemptTime = millis();
+  while (!isIDSet && millis() - startAttemptTime < waitingDuration) {           // The camera waits for the ID to be set by the back-end. If the time is over, the camera will stop the configuration process
+    client.loop();
+    delay(100);
+  }
+  if(isIDSet) {
+    Serial.println("\nCamera ID set to: " + config.cameraID);
+    client.unsubscribe("newID/#");                                              // Once the camera has the ID, it unsubscribes from the topic "newID/#"
+    return true;
+  }
+  else {
+    Serial.println("\nCamera ID not set. Please, check the back-end configuration and try again reconnecting the camera");
+    return false;
+  }
+
+}
+
+/**
+ *  callback() is the function called when the camera receives the message from the back-end that contains the camera's ID.
+ */
+
+void callback(char* topic, byte* payload, unsigned int length) {
+
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  String message = "";
+  for (int i = 0; i < length; i++) {
+    message += (char)payload[i];
+  }
+  String topicString = String(topic);
+  if(topicString.startsWith("newID/")) {
+    isIDSet = true;
+    config.cameraID = message;
+    Serial.println("Camera ID set to: " + config.cameraID);
+  }
+  else {
+    Serial.println("Unknown topic: " + topicString);
+  }
 
 }
 
@@ -336,20 +338,20 @@ void sendSetUpInformation() {
 
 void configWebServer() {
   
-  WiFi.softAP("ESP32 Camera Configuration");              // Avvio AP per accedere alla pagina di configurazione
+  WiFi.softAP("ESP32 Camera Configuration");              // The camera creates an Access Point in order to let the user connect to it and configure the camera
   IPAddress IP = WiFi.softAPIP();
   Serial.print("Access Point started. Connect to 'ESP32 Camera Configuration' e access via browser the address http://");
   Serial.println(IP);
 
   /*
-      "server.on" configures the HTTP server's response to a client's request via browser when triying to access at the previuos definied IP address and so when GET method is executed.
+      "server.on" configures the HTTP server's response to a client's request via browser when trying to access at the previous defined IP address and so when GET method is executed.
       In this case, the server will send the HTML page 'config.html' to the client.
   */
 
   server.on("/", HTTP_GET, []() {                             
     File file = SPIFFS.open("/config.html", "r");
     if (!file) {
-      server.send(500, "text/plain", "Errore nell'apertura del file");
+      server.send(500, "text/plain", "Error loading the configuration page");
       return;
     }
     String html = file.readString();
@@ -358,7 +360,7 @@ void configWebServer() {
   });
 
   /*
-      This "server.on" defines the response of the HTTP POST metho: it saves the form's data on the config.txt file.
+      This "server.on" defines the response of the HTTP POST method: it saves the form's data on the config.txt file.
   */
 
   server.on("/save", HTTP_POST, []() {
@@ -367,29 +369,35 @@ void configWebServer() {
     config.mqtt_server = server.arg("mqtt_server");
     config.mqtt_username = server.arg("mqtt_user");
     config.mqtt_password = server.arg("mqtt_password");
-    config.cameraID = "1";                                       // TODO: Camera ID must be sent by the back-end
-    MQTTTopic = "inference/" + config.cameraID;
+    config.cameraID = "N";                                       // "N" because the cameraID is not known yet, it will sent by the back-end
 
-    if (saveConfig("/config.txt", &config)) {
-      if(setup_wifi()) {
-          if(testMQTTConnection(&client, &config)) {
-            Serial.println("MQTT Broker reachable");
-            openCompleteConfigurationPage();
-            WiFi.softAPdisconnect(true);
-            Serial.println("Access Point stopped");
-            sendSetUpInformation();
-            while (true)
-              scanForObjects();
+    if(setup_wifi()) {
+        if(testMQTTConnection(&client, &config)) {
+          Serial.println("MQTT Broker reachable");
+          if(sendSetUpInformation()) {
+               if(saveConfig("/config.txt", &config)) {
+                  server.send(200, "text/plain", "");
+                  sendSetUpInformation();
+                  openCompleteConfigurationPage();
+                  WiFi.softAPdisconnect(true);
+                  Serial.println("Access Point stopped");
+                  MQTTTopic = "inference/" + config.cameraID;       // The cameraID is now known, so the MQTT topic can be set up
+                  while (true)
+                    scanForObjects();
+               }
+               else {
+                  server.send(500, "text/plain", "Error during credentials saving");
+               }
           }
-          else
-            server.send(500, "text/plain", "Error during MQTT connection. Credentials could be uncorrect or the specified server is not reachable. Go back and retry. \n If the problem persists, try to unplug and then replug the camera");
-      }
-      else {
-          server.send(500, "text/plain", "Error during Wi-FI connecttion. Check if Wi-Fi SSID and password are correct, or verify if there's enough signal. Go back to previous page to retry.");
-      }
-    } 
+          else {
+            server.send(500, "text/plain", "Error during MQTT connection. Credentials could be uncorrected or the specified server is not reachable. Go back and retry. \n If the problem persists, try to unplug and then replug the camera");
+          }
+        }
+        else
+          server.send(500, "text/plain", "Error during MQTT connection. Credentials could be uncorrected or the specified server is not reachable. Go back and retry. \n If the problem persists, try to unplug and then replug the camera");
+    }
     else {
-      server.send(500, "text/plain", "Error during credentials saving");
+        server.send(500, "text/plain", "Error during Wi-FI connection. Check if Wi-Fi SSID and password are correct, or verify if there's enough signal. Go back to previous page to retry.");
     }
   });
   server.begin();
@@ -406,7 +414,7 @@ void openCompleteConfigurationPage() {
 
   File file = SPIFFS.open("/confirmationPage.html", "r");
   if (!file) {
-    server.send(500, "text/plain", "Error loading the final page. It should display only a confirmation page, so the rest of the programm should be fine. You can now see MQTT messages send to the MQTT Broker");
+    server.send(500, "text/plain", "Error loading the final page. It should display only a confirmation page, so the rest of the program should be fine. You can now see MQTT messages send to the MQTT Broker");
     return;
   }
   String html = file.readString();
@@ -454,7 +462,7 @@ void scanForObjects() {
     }
     /*
         Now scan's results are printed. There are 3 main parameters:
-        DSP Timing: time (in ms) needed in order to capture and elaborate the photo signal. The elaboratin includes filtering operations, data transformation and extracting relevant characteristics from the starting signal.
+        DSP Timing: time (in ms) needed in order to capture and elaborate the photo signal. The elaboration includes filtering operations, data transformation and extracting relevant characteristics from the starting signal.
         Classification: time (in ms) needed in order to complete the model's inferation (so displaying what the objects seen by the camera and confidence percentage)
         Anomaly: time (in ms) needed to scan the image if there was an anomaly. This parameter is considered when the model is trained for detecting data's strange behaviour (not our case)
     */
@@ -472,8 +480,8 @@ void scanForObjects() {
         }
 
         /*
-            In case that bb contains a subject, it will be printed the subject's label, the confidence (in % value), his position in the photo (x,y), height lenght of bounding box drawn around the subject.
-            The object would be considered as "detected" only if the confidence level would be higher than "minConfdence" (choosen by the user, it's recomended to use values from 0,85 and higher)
+            In case that bb contains a subject, it will be printed the subject's label, the confidence (in % value), his position in the photo (x,y), height length of bounding box drawn around the subject.
+            The object would be considered as "detected" only if the confidence level would be higher than "minConfidence" (choosen by the user, it's recommended to use values from 0,85 and higher)
         */
 
         if(bb.value >= minConfidence) {
@@ -541,7 +549,7 @@ bool ei_camera_init(void) {
 }
 
 /**
-      ei_camera_deinit() deinitializes the camera when the image analisys is completed.
+      ei_camera_deinit() deinitialize the camera when the image analysis is completed.
  */
 void ei_camera_deinit(void) {
 
@@ -559,8 +567,8 @@ void ei_camera_deinit(void) {
 
 /**
       ei_camera_capture() captures the photo at the initial resolution set in the "camera_config" struct.
-      If the model is trained in a resolution that is lower than the photo one, the function will do a resize to adpat the native image.
-      This is necessary in order to do a corret inference with the trained model.
+      If the model is trained in a resolution that is lower than the photo one, the function will do a resize to adapt the native image.
+      This is necessary in order to do a correct inference with the trained model.
  */
 
 bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf) {
@@ -610,7 +618,7 @@ static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t out_ptr_ix = 0;
 
     while (pixels_left != 0) {
-        // The following instruction swap BGR to RGB here. This is needed due to a different color managagement for ESP32 camera models (see https://github.com/espressif/esp32-camera/issues/379)
+        // The following instruction swap BGR to RGB here. This is needed due to a different color management for ESP32 camera models (see https://github.com/espressif/esp32-camera/issues/379)
         out_ptr[out_ptr_ix] = (snapshot_buf[pixel_ix + 2] << 16) + (snapshot_buf[pixel_ix + 1] << 8) + snapshot_buf[pixel_ix];
         out_ptr_ix++;   // go to the next pixel
         pixel_ix+=3;
@@ -618,6 +626,59 @@ static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr) {
     }
     return 0;
 
+}
+
+void setup() {
+ 
+  Serial.begin(115200);
+  Serial.println("Starting setup...");
+  if(!initializeFileSystem()) {
+    Serial.println("Error while initializing the file system");
+    return;
+  }
+  verifyFilePresence("/config.html", config_html);
+  verifyFilePresence("/confirmationPage.html", confirmationPage_html);
+  client.setServer(config.mqtt_server.c_str(), 1883);
+  if (ei_camera_init() == false) {
+      ei_printf("Failed to initialize Camera!\r\n");
+  }
+  else {
+      ei_printf("Camera initialized\r\n");
+  }
+  client.setCallback(callback);                 // It sets the callback function that will be called when the camera receives a message from the back-end
+  configWebServer();
+  startWaitingTime = millis();
+  Serial.println("Waiting for user's configuration...");
+
+}
+
+void loop() {
+
+  unsigned long currentTime = millis();
+  if (serverActive) {
+    server.handleClient();
+    if(currentTime - startWaitingTime >= waitingDuration) {       // Starting waiting for 5 minutes before using already existing parameters in the 'config.txt' file
+      serverActive = false;
+      Serial.println("Timer expired, stopping server...");
+      server.stop();
+      if(!loadCredentials(&config)) {
+        Serial.println("Error while extracting configuration data from 'config.txt'.");
+        return;
+      }
+      if (setup_wifi()) {
+        if(testMQTTConnection(&client, &config)) {
+          Serial.println("MQTT Broker reachable");
+          WiFi.softAPdisconnect(true);
+          Serial.println("Access Point stopped");
+          MQTTTopic = "inference/" + config.cameraID;     
+        }
+      }
+    }
+  }
+  else {
+    scanForObjects();
+  }
+  
 }
 
 #if !defined(EI_CLASSIFIER_SENSOR) || EI_CLASSIFIER_SENSOR != EI_CLASSIFIER_SENSOR_CAMERA
