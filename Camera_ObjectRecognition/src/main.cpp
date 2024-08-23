@@ -273,10 +273,11 @@ bool sendSetUpInformation() {
 
   String inferenceCategories = "";
   int dimension = sizeof(ei_classifier_inferencing_categories) / 4;
-  for (int i = 0; i < dimension; i++)
+  for (int i = 0; i < dimension-1; i++)
   {
       inferenceCategories = inferenceCategories + ei_classifier_inferencing_categories[i]+ " ";
   }
+  inferenceCategories = inferenceCategories + ei_classifier_inferencing_categories[dimension-1];
   Serial.println("Sending configuration info");
   String connectedCameraTopic = "cameraConnected/N";                          // The camera sends a message to the MQTT Broker in order to inform that needs a new ID
 
@@ -376,8 +377,6 @@ void configWebServer() {
           Serial.println("MQTT Broker reachable");
           if(sendSetUpInformation()) {
                if(saveConfig("/config.txt", &config)) {
-                  server.send(200, "text/plain", "");
-                  sendSetUpInformation();
                   openCompleteConfigurationPage();
                   WiFi.softAPdisconnect(true);
                   Serial.println("Access Point stopped");
