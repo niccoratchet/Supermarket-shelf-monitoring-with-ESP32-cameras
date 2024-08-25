@@ -3,6 +3,8 @@ import paho.mqtt.client as mqtt
 import logging
 import os
 from flask_sqlalchemy import SQLAlchemy
+from collections import Counter
+from sqlalchemy import text
 
 app = Flask(__name__)
 
@@ -38,12 +40,14 @@ def on_message(client, userdata, msg):
         cameraID = msg.topic.split("/")[1]              # Extract the camera ID from the topic
         if msg.payload.decode() == "No objects found":
             app.logger.info(f" Camera n° {cameraID} has not spotted any object")
+            updateCameraProductQuantity(cameraID, "No objects found")
         else:
             app.logger.info(f" Camera n° {cameraID} has spotted: {msg.payload.decode()}")
+            updateCameraProductQuantity(cameraID, msg.payload.decode())
     elif msg.topic.endswith("N"):
         app.logger.info(f" Camera with objects to scan: {msg.payload.decode()} is now connected. Extracting a new ID from the database...")
         newCamera = newCameraConfiguration(client, userdata, msg)
-        updateShelves(newCamera, msg.payload.decode())
+        linkProductsWithCamera(newCamera, msg.payload.decode())
     else:
         app.logger.info(f" Camera with ID: {cameraID} and objects to scan: {msg.payload.decode()} is now connected")
 
@@ -58,8 +62,8 @@ def newCameraConfiguration(client, userdata, msg):  # This function is called wh
         app.logger.info(f" Camera with ID: {newCamera.id} and objects to scan: {msg.payload.decode()} is now connected")
         return newCamera
 
-# Called when a camera sends a message containing the objects it has spotted
-def updateShelves(newCamera, objectsString):                        # This function is called when a camera sends a message containing the objects it has spotted
+# Called when a new camera is configured. Products (not already present) are added to the database and the camera is linked to them
+def linkProductsWithCamera(newCamera, objectsString):
     with app.app_context():
         app.logger.info("Updating the shelf information...")
         objects = objectsString.split(" ")                          # Split the objects string into a list of objects
@@ -85,6 +89,64 @@ def updateShelves(newCamera, objectsString):                        # This funct
                 db.session.add(newCameraProduct)
                 db.session.add(newProductShelf)
                 db.session.commit()
+
+def updateCameraProductQuantity(cameraID, msgPayload):  # This function is called when a camera sends the quantity of a product
+    with app.app_context():
+        if msgPayload != "No objects found":
+            productNames = extract_product_names(msgPayload)                    # Extract the product names from the MQTT message
+            productCounts = Counter(productNames)                               # Count the number of occurrences of each product
+
+            monitoredProducts = db.session.query(Camera_Product).filter_by(camera_id=cameraID).all()    # Get the products monitored by the camera
+
+            updatedProductIDs = set()                                           # Create a set to store the IDs of the products that have been updated
+            for productName in productNames:
+                productID = db.session.query(Product.id).filter_by(name=productName).first()            # Get the ID of the spotted product
+                if productID is not None:
+                    cameraProduct = db.session.query(Camera_Product).filter(Camera_Product.camera_id == cameraID, Camera_Product.product_id == productID[0]).first()        # Get the camera_product row for the spotted product
+                    if cameraProduct is not None:
+                        cameraProduct.quantity = productCounts[productName]
+                        updatedProductIDs.add(productID[0])
+
+            for cameraProduct in monitoredProducts:                         # Set the quantity of the products that have not been spotted to 0
+                if cameraProduct.product_id not in updatedProductIDs:
+                    app.logger.info(f" Product {cameraProduct.product_id} has not been spotted by the camera. Setting the quantity to 0")
+                    cameraProduct.quantity = 0
+        else:
+            monitoredProducts = db.session.query(Camera_Product).filter_by(camera_id=cameraID).all()
+            for cameraProduct in monitoredProducts:
+                cameraProduct.quantity = 0
+                app.logger.info(f" Product {cameraProduct.product_id} has not been spotted by the camera. Setting the quantity to 0")
+        db.session.commit()
+        updateShelfProductQuantities(cameraID)                          # Update the quantity of the products in the Shelf_Product table
+
+# This function is used to update the quantity of the products in Shelf_Product table  
+def updateShelfProductQuantities(cameraID):
+    with app.app_context():
+        camera = db.session.query(Camera).filter_by(id=cameraID).first()
+        if camera is not None:
+            query= text("""SELECT cp.product_id AS product_id, SUM(cp.quantity) as total_quantity
+                     FROM Camera c, Camera_Product cp
+                     WHERE shelf_number = :shelf_number
+                     GROUP BY product_id
+                     """)
+            result = db.session.execute(query, {'shelf_number': camera.shelf_number}).fetchall()  # Execute the query and fetch all the results
+            product_quantities = {row[0]: row[1] for row in result}       # Converting the result into a dictionary {product_id: total_quantity}
+            for product_id, total_quantity in product_quantities.items():                       # Update the quantity of the products in the Shelf_Product table
+                query = text("""
+                    UPDATE Product_Shelf
+                    SET quantity = :total_quantity
+                    WHERE shelf_number = :shelf_number
+                    AND product_id = :product_id
+                """)
+                db.session.execute(query, {
+                    'total_quantity': total_quantity,
+                    'shelf_number': camera.shelf_number,
+                    'product_id': product_id
+                })
+            db.session.commit()
+        else:
+            app.logger.error(f" Camera with ID {cameraID} not found")
+
                 
 
 logging.basicConfig(level=logging.INFO)  # Set the logging level to INFO
@@ -124,6 +186,7 @@ class Camera_Product(db.Model):  # This class represents the Camera_Product tabl
     __tablename__ = 'camera_product'
     camera_id = db.Column(db.Integer, db.ForeignKey('camera.id'), primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
     def __repr__(self):
         return f'<Camera_Product {self.camera_id} - {self.product_id}>'
 
@@ -131,6 +194,9 @@ class Product_Shelf(db.Model):  # This class represents the Product_Shelf table 
     __tablename__ = 'product_shelf'
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
     shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
+    def __repr__(self):
+        return f'<Product_Shelf {self.product_id} - {self.shelf_number}>'
 
 def initialize_database():
     with app.app_context():                                             # app.app_context() is used to create a context in which the application is configured outside of the request/response cycle
@@ -141,6 +207,10 @@ def initialize_database():
             db.session.bulk_save_objects(initial_shelves)                # Used to insert multiple objects in the database from a list
             db.session.commit()                                         # Commit the changes to the database                     
 
+# This function is used to extract the product names from the MQTT message
+def extract_product_names(mqtt_message):                        
+    lines = mqtt_message.splitlines()
+    return [line.split('(')[0].strip() for line in lines]
 
 @app.route('/')
 def home():
