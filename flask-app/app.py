@@ -125,11 +125,11 @@ def updateShelfProductQuantities(cameraID):
         camera = db.session.query(Camera).filter_by(id=cameraID).first()
         if camera is not None:
             query= text("""SELECT cp.product_id AS product_id, SUM(cp.quantity) as total_quantity
-                     FROM Camera c, Camera_Product cp
-                     WHERE shelf_number = :shelf_number
-                     GROUP BY product_id
+                           FROM Camera c, Camera_Product cp
+                           WHERE shelf_number = :shelf_number AND c.id = cp.camera_id AND cp.camera_id = :camera_id
+                           GROUP BY product_id
                      """)
-            result = db.session.execute(query, {'shelf_number': camera.shelf_number}).fetchall()  # Execute the query and fetch all the results
+            result = db.session.execute(query, {'shelf_number': camera.shelf_number, 'camera_id': cameraID}).fetchall()  # Execute the query and fetch all the results
             product_quantities = {row[0]: row[1] for row in result}       # Converting the result into a dictionary {product_id: total_quantity}
             for product_id, total_quantity in product_quantities.items():                       # Update the quantity of the products in the Shelf_Product table
                 query = text("""
@@ -147,8 +147,11 @@ def updateShelfProductQuantities(cameraID):
         else:
             app.logger.error(f" Camera with ID {cameraID} not found")
 
-                
-
+# This function is used to extract the product names from the MQTT message
+def extract_product_names(mqtt_message):                        
+    lines = mqtt_message.splitlines()
+    return [line.split('(')[0].strip() for line in lines]
+          
 logging.basicConfig(level=logging.INFO)  # Set the logging level to INFO
 
 mqtt_client = mqtt.Client()
@@ -206,11 +209,6 @@ def initialize_database():
                                Shelf(number="2", description="Bath")]
             db.session.bulk_save_objects(initial_shelves)                # Used to insert multiple objects in the database from a list
             db.session.commit()                                         # Commit the changes to the database                     
-
-# This function is used to extract the product names from the MQTT message
-def extract_product_names(mqtt_message):                        
-    lines = mqtt_message.splitlines()
-    return [line.split('(')[0].strip() for line in lines]
 
 @app.route('/')
 def home():
