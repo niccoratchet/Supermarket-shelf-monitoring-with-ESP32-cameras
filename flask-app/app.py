@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from collections import Counter
 from sqlalchemy import text
 from app.models import db, Shelf, Camera, Product, Camera_Product, Product_Shelf
+from app.routes import main as main_blueprint
 
 app = Flask(__name__)
 
@@ -14,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+app.register_blueprint(main_blueprint)                          # Register the blueprint in the Flask app
 
 # MQTT Broker's configuration. The values are read from the environment variables
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker")                   # Broker MQTT container's name
@@ -170,22 +172,6 @@ def initialize_database():
                                Shelf(number="2", description="Bath")]
             db.session.bulk_save_objects(initial_shelves)                # Used to insert multiple objects in the database from a list
             db.session.commit()                                         # Commit the changes to the database                     
-
-@app.route('/')
-def home():
-    return "Hello, Flask with MQTT!"
-
-@app.route('/shelves')
-def shelves():
-    shelves = Shelf.query.all()
-    results = [
-        {
-            "number": shelf.number,
-            "description": shelf.description
-        } for shelf in shelves
-    ]
-
-    return jsonify(results)
 
 if __name__ == "__main__":
     initialize_database()
