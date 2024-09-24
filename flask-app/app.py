@@ -5,6 +5,7 @@ import os
 from flask_sqlalchemy import SQLAlchemy
 from collections import Counter
 from sqlalchemy import text
+from app.models import db, Shelf, Camera, Product, Camera_Product, Product_Shelf
 
 app = Flask(__name__)
 
@@ -12,7 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://admin:dbpass@db:5432/shelves-db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db.init_app(app)
 
 # MQTT Broker's configuration. The values are read from the environment variables
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker")                   # Broker MQTT container's name
@@ -160,46 +161,6 @@ mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)  # Connect to the broker
 mqtt_client.loop_start()  # Start the MQTT client's loop in a separate thread
-
-class Shelf(db.Model):          # This class represents the Shelf table in the database
-    __tablename__ = 'shelf'
-    number = db.Column(db.Text, primary_key=True)
-    description = db.Column(db.Text, nullable=True)
-    def __repr__(self):
-        return f'<Shelf {self.number} - {self.description}>'
-    
-class Camera(db.Model):         # This class represents the Camera table in the database
-    __tablename__ = 'camera'
-    id = db.Column(db.Integer, primary_key=True)
-    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    def __repr__(self):
-        return f'<Camera {self.id} - {self.shelf_number} - {self.description}>'
-    
-class Product(db.Model):        # This class represents the Product table in the database
-    __tablename__ = 'product'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text, nullable=False)
-    quantity = db.Column(db.Integer, nullable=False, default=0)
-    category = db.Column(db.Text, nullable=False)
-    def __repr__(self):
-        return f'<Product {self.id} - {self.name} - {self.category_name}>'
-
-class Camera_Product(db.Model):  # This class represents the Camera_Product table in the database
-    __tablename__ = 'camera_product'
-    camera_id = db.Column(db.Integer, db.ForeignKey('camera.id'), primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
-    quantity = db.Column(db.Integer, nullable=False, default=0)
-    def __repr__(self):
-        return f'<Camera_Product {self.camera_id} - {self.product_id}>'
-
-class Product_Shelf(db.Model):  # This class represents the Product_Shelf table in the database
-    __tablename__ = 'product_shelf'
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
-    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), primary_key=True)
-    quantity = db.Column(db.Integer, nullable=False, default=0)
-    def __repr__(self):
-        return f'<Product_Shelf {self.product_id} - {self.shelf_number}>'
 
 def initialize_database():
     with app.app_context():                                             # app.app_context() is used to create a context in which the application is configured outside of the request/response cycle

@@ -1,5 +1,9 @@
 {
     "cSpell.words": [
         "mqtt"
+    ],
+    "cmake.sourceDirectory": "C:/Users/Stefania/Documents/GitHub/Supermarket-shelf-monitoring-with-ESP32-cameras/Camera_ObjectRecognition/src",
+    "python.analysis.extraPaths": [
+        "./flask-app"
     ]
 }
