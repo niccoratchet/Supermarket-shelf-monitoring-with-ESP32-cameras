@@ -10,6 +10,7 @@
 #include "fileManager.h"
 #include "Config.h"
 #include "MQTTConnectionManager.h"
+#include "photoTransfer.h"
 
 /**
     NOTE: The library used for importing the ML model is .ZIP file: "timer_camera_object_recognition-V23.zip" where "timer_camera_object_recognition" is the name of the project in Edge Impulse, 
@@ -120,6 +121,7 @@ static bool debug_nn = false;                   // Set this to true to see e.g. 
 static bool is_initialised = false;
 uint8_t *snapshot_buf;                          // Points to the output of the capture
 float minConfidence = 0.85;
+camera_fb_t *photoToTransfer = NULL;            // It is used to store the photo taken by the camera and then transfer it to the back-end
 
 static camera_config_t camera_config = {        // Values definition about the struct "camera_config": it is used to configure parameters like PINs on the board, photo's quality and resolution ecc..
 
@@ -501,6 +503,14 @@ void scanForObjects() {
 
     if (!client.connected()) {        // If the MQTT connection is set up, the camera sends the model's inferation results to the MQTT broker
       sendMQTTMessage(&client, MQTTTopic, outputString, number_of_objects, false, &config);
+      if (photoToTransfer != NULL) {
+        if(sendPhotoToWebServer(photoToTransfer)) {
+          Serial.println("Photo sent to the web server");
+        }
+        delete photoToTransfer;
+        photoToTransfer = NULL;
+      }
+      
     }
     client.loop();
     free(snapshot_buf);
@@ -572,26 +582,27 @@ void ei_camera_deinit(void) {
 
 bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf) {
 
-    bool do_resize = false;
-    if (!is_initialised) {
-        ei_printf("ERR: Camera is not initialized\r\n");
-        return false;
-    }
-    camera_fb_t *fb = esp_camera_fb_get();          // The camera will take a photo. This will be stored and pointed by "*fb".
-    if (!fb) {
-        ei_printf("Camera capture failed\n");
-        return false;
-    }
-
-   bool converted = fmt2rgb888(fb->buf, fb->len, PIXFORMAT_JPEG, snapshot_buf);
-   esp_camera_fb_return(fb);
-   if(!converted){
-       ei_printf("Conversion failed\n");
-       return false;
-   }
+  bool do_resize = false;
+  if (!is_initialised) {
+      ei_printf("ERR: Camera is not initialized\r\n");
+      return false;
+  }
+  camera_fb_t *fb = esp_camera_fb_get();          // The camera will take a photo. This will be stored and pointed by "*fb".
+  if (!fb) {
+      ei_printf("Camera capture failed\n");
+      return false;
+  }
+  photoToTransfer = fb;                           // The photo taken by the camera is stored in the "photoToTransfer" object
+  bool converted = fmt2rgb888(fb->buf, fb->len, PIXFORMAT_JPEG, snapshot_buf);
+  esp_camera_fb_return(fb);
+  if(!converted){
+      ei_printf("Conversion failed\n");
+      delete photoToTransfer;                           // In case something goes wrong, the photo taken by the camera is deleted in order to not have memory leaks
+      return false;
+  }
   if ((img_width != EI_CAMERA_RAW_FRAME_BUFFER_COLS)
-   || (img_height != EI_CAMERA_RAW_FRAME_BUFFER_ROWS)) {
-   do_resize = true;
+   || (img_height != EI_CAMERA_RAW_FRAME_BUFFER_ROWS)) {  
+    do_resize = true;
   }
   if (do_resize) {
         ei::image::processing::crop_and_interpolate_rgb888(
