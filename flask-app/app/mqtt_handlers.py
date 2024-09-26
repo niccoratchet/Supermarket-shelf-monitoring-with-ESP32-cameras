@@ -1,7 +1,8 @@
-from app.models import db, Camera, Product, Camera_Product, Product_Shelf
+from app.models import Camera, Product, Camera_Product, Product_Shelf
 from collections import Counter
 from app.utils import extract_product_names
 from sqlalchemy import text
+from config import db
 
 # Topics to subscribe to. "inference/#" is used to receive the inference results from the cameras. "cameraConnected/#" is used to notify the Flask app when a new camera is connected
 # Regarding the "cameraConnected/#" if a new camera is connected, at the wildcard place will be present 'N'. It indicates that the camera has to be configured and needs a new ID.
@@ -131,5 +132,5 @@ def init_mqtt_handlers(app, mqtt_client):
             else:
                 app.logger.error(f" Camera with ID {cameraID} not found")
     
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
+    mqtt_client.on_connect = on_connect         # Assign the on_connect function to the client's on_connect callback
+    mqtt_client.on_message = on_message         # Assign the on_message function to the client's on_message callback

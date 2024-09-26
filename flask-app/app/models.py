@@ -1,5 +1,4 @@
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
+from config import db
 
 class Shelf(db.Model):          # This class represents the Shelf table in the database
     __tablename__ = 'shelf'
