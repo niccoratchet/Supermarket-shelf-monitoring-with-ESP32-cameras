@@ -507,7 +507,9 @@ void scanForObjects() {
         if(sendPhotoToWebServer(photoToTransfer)) {
           Serial.println("Photo sent to the web server");
         }
-        delete photoToTransfer;
+        else
+          Serial.println("Something went wrong during the image transportation to the Web Server");
+        // delete photoToTransfer;
         photoToTransfer = NULL;
       }
       

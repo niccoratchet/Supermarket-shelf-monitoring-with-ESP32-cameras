@@ -2,7 +2,7 @@ from app.models import Camera, Product, Camera_Product, Product_Shelf
 from collections import Counter
 from app.utils import extract_product_names
 from sqlalchemy import text
-from config import db
+from . import db
 
 # Topics to subscribe to. "inference/#" is used to receive the inference results from the cameras. "cameraConnected/#" is used to notify the Flask app when a new camera is connected
 # Regarding the "cameraConnected/#" if a new camera is connected, at the wildcard place will be present 'N'. It indicates that the camera has to be configured and needs a new ID.
