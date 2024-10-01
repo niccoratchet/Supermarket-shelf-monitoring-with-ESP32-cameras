@@ -119,7 +119,7 @@
 
 static bool debug_nn = false;                   // Set this to true to see e.g. features generated from the raw signal
 static bool is_initialised = false;
-uint8_t *snapshot_buf;                          // Points to the output of the capture
+uint8_t *snapshot_buf;                          // Points to the output of the capture. It's used by the Edge Impulse SDK to manipulate the image. The original photo is in the camera_fb_t struct.
 float minConfidence = 0.85;
 camera_fb_t *photoToTransfer = NULL;            // It is used to store the photo taken by the camera and then transfer it to the back-end
 
@@ -450,7 +450,7 @@ void scanForObjects() {
 
     if (ei_camera_capture((size_t)EI_CLASSIFIER_INPUT_WIDTH, (size_t)EI_CLASSIFIER_INPUT_HEIGHT, snapshot_buf) == false) {
         ei_printf("Failed to capture image\r\n");
-        free(snapshot_buf);
+        free(snapshot_buf);                               
         return;
     }
     
@@ -502,17 +502,25 @@ void scanForObjects() {
     }
 
     if (!client.connected()) {        // If the MQTT connection is set up, the camera sends the model's inferation results to the MQTT broker
+
       sendMQTTMessage(&client, MQTTTopic, outputString, number_of_objects, false, &config);
       if (photoToTransfer != NULL) {
+        
         if(sendPhotoToWebServer(photoToTransfer)) {
           Serial.println("Photo sent to the web server");
         }
         else
           Serial.println("Something went wrong during the image transportation to the Web Server");
-        // delete photoToTransfer;
+
+        esp_camera_fb_return(photoToTransfer);              // The photo is sent to the back-end, so it can be deleted from the camera's memory
         photoToTransfer = NULL;
+
       }
-      
+
+    }
+    if (photoToTransfer != NULL) {                      // This check is needed in order to free the memory allocated for the photo when the camera is not able to connect to the MQTT Broker
+      esp_camera_fb_return(photoToTransfer);                
+      photoToTransfer = NULL;
     }
     client.loop();
     free(snapshot_buf);
@@ -596,10 +604,9 @@ bool ei_camera_capture(uint32_t img_width, uint32_t img_height, uint8_t *out_buf
   }
   photoToTransfer = fb;                           // The photo taken by the camera is stored in the "photoToTransfer" object
   bool converted = fmt2rgb888(fb->buf, fb->len, PIXFORMAT_JPEG, snapshot_buf);
-  esp_camera_fb_return(fb);
   if(!converted){
       ei_printf("Conversion failed\n");
-      delete photoToTransfer;                           // In case something goes wrong, the photo taken by the camera is deleted in order to not have memory leaks
+      esp_camera_fb_return(fb);
       return false;
   }
   if ((img_width != EI_CAMERA_RAW_FRAME_BUFFER_COLS)
