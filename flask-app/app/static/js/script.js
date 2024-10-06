@@ -1,52 +1,60 @@
-// Simulazione dei dati degli scaffali
+// script.js
+
+// Shelves rows content simulation
 const shelvesData = [
     {
         id: 1,
         name: "Scaffale A",
-        image: "https://via.placeholder.com/100", // Immagine di esempio
+        image: "https://via.placeholder.com/300x200", // Example image
         lastUpdate: "2024-08-26 14:30"
     },
     {
         id: 2,
         name: "Scaffale B",
-        image: "https://via.placeholder.com/100", // Immagine di esempio
+        image: "https://via.placeholder.com/300x200",
         lastUpdate: "2024-08-26 14:35"
     },
     {
         id: 3,
         name: "Scaffale C",
-        image: "https://via.placeholder.com/100", // Immagine di esempio
+        image: "https://via.placeholder.com/300x200",
         lastUpdate: "2024-08-26 14:40"
     }
 ];
 
-// Funzione per creare gli elementi HTML per ogni scaffale
+// Used to create HTML elements for each shelf using Bootstrap cards
 function renderShelves() {
     const shelvesContainer = document.getElementById('shelvesContainer');
     shelvesData.forEach(shelf => {
-        const shelfElement = document.createElement('div');
-        shelfElement.className = 'shelf';
+        const col = document.createElement('div');
+        col.className = 'col-md-4';
 
-        const shelfImage = document.createElement('img');
-        shelfImage.src = shelf.image;
-        shelfImage.alt = `Immagine di ${shelf.name}`;
+        const card = document.createElement('div');
+        card.className = 'card h-100';
 
-        const shelfInfo = document.createElement('div');
-        shelfInfo.className = 'shelf-info';
+        const img = document.createElement('img');
+        img.src = shelf.image;
+        img.className = 'card-img-top';
+        img.alt = `Immagine di ${shelf.name}`;
 
-        const shelfName = document.createElement('h3');
-        shelfName.textContent = shelf.name;
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body d-flex flex-column';
 
-        const shelfLastUpdate = document.createElement('p');
-        shelfLastUpdate.textContent = `Ultimo aggiornamento: ${shelf.lastUpdate}`;
+        const cardTitle = document.createElement('h5');
+        cardTitle.className = 'card-title';
+        cardTitle.textContent = shelf.name;
 
-        shelfInfo.appendChild(shelfName);
-        shelfInfo.appendChild(shelfLastUpdate);
+        const cardText = document.createElement('p');
+        cardText.className = 'card-text mt-auto';
+        cardText.textContent = `Ultimo aggiornamento: ${shelf.lastUpdate}`;
 
-        shelfElement.appendChild(shelfImage);
-        shelfElement.appendChild(shelfInfo);
+        cardBody.appendChild(cardTitle);
+        cardBody.appendChild(cardText);
 
-        shelvesContainer.appendChild(shelfElement);
+        card.appendChild(img);
+        card.appendChild(cardBody);
+        col.appendChild(card);
+        shelvesContainer.appendChild(col);
     });
 }
 
