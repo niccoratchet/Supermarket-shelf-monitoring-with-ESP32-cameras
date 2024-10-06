@@ -12,6 +12,7 @@ class Camera(db.Model):         # This class represents the Camera table in the 
     id = db.Column(db.Integer, primary_key=True)
     shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    image_path = db.Column(db.Text, nullable=True)
     def __repr__(self):
         return f'<Camera {self.id} - {self.shelf_number} - {self.description}>'
     

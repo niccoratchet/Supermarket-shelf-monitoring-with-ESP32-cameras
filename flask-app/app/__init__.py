@@ -11,13 +11,13 @@ def create_app():
     app = Flask(__name__)               # Creating the Flask app
     app.config.from_object(Config)      # Load the configuration from the Config class
 
-    app.logger.info(f" UPLOAD_FOLDER: {app.config.get('UPLOAD_FOLDER')}")            # Log the upload folder path
+    app.logger.info(f" BASE_UPLOAD_FOLDER: {app.config.get('BASE_UPLOAD_FOLDER')}")            # Log the upload folder path
 
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):                             # Check if the upload folder exists, if not create it
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-        app.logger.info(f" Created upload folder at {app.config['UPLOAD_FOLDER']}")
+    if not os.path.exists(app.config['BASE_UPLOAD_FOLDER']):                             # Check if the upload folder exists, if not create it
+        os.makedirs(app.config['BASE_UPLOAD_FOLDER'])
+        app.logger.info(f" Created upload folder at {app.config['BASE_UPLOAD_FOLDER']}")
     else:
-        app.logger.info(f" Upload folder already exists at {app.config['UPLOAD_FOLDER']}")
+        app.logger.info(f" Upload folder already exists at {app.config['BASE_UPLOAD_FOLDER']}")
 
     db.init_app(app)  # Connect the SQLAlchemy instance to the Flask app
 

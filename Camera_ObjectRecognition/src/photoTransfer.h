@@ -7,7 +7,8 @@
 
 #include <esp_camera.h>
 #include <WiFi.h>
+#include <Config.h>
 
-bool sendPhotoToWebServer(camera_fb_t* photoToTransfer);
+bool sendPhotoToWebServer(camera_fb_t* photoToTransfer, Config& config);
 
 #endif // PHOTO_TRANSFER_H

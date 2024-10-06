@@ -1,6 +1,6 @@
 #include "photoTransfer.h"
 
-bool sendPhotoToWebServer(camera_fb_t* photoToTransfer) {
+bool sendPhotoToWebServer(camera_fb_t* photoToTransfer, Config& config) {
 
     WiFiClient client;
     Serial.print("Connecting to: ");
@@ -19,6 +19,9 @@ bool sendPhotoToWebServer(camera_fb_t* photoToTransfer) {
 
     // Creating the body of the request multipart/form-data
     String bodyStart = "--" + boundary + "\r\n";
+    bodyStart += "Content-Disposition: form-data; name=\"camera_id\"\r\n\r\n";
+    bodyStart += String(config.cameraID) + "\r\n";
+    bodyStart += "--" + boundary + "\r\n";
     bodyStart += "Content-Disposition: form-data; name=\"file\"; filename=\"photo.jpg\"\r\n";
     bodyStart += "Content-Type: image/jpeg\r\n\r\n";
 

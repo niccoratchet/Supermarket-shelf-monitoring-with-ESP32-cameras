@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoraggio Scaffali</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Monitoraggio Scaffali</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
+
+        <section id="shelvesList">
+            <h2>Lista Scaffali</h2>
+            <div id="shelvesContainer">
+                <!-- La lista degli scaffali verrà popolata dinamicamente con JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
