@@ -68,6 +68,7 @@ def upload_image():
 
             relative_path = filename                                  # Save the relative path to the image in the camera row
             camera.image_path = relative_path
+            camera.last_update = datetime.now()                      # Update the last_update field with the current timestamp
             db.session.commit()
 
             current_app.logger.info(f" File {filename} uploaded successfully to {file_path}")

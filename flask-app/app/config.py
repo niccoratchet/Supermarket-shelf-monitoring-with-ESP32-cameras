@@ -13,7 +13,7 @@ class Config:
     MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "notfound-password")
 
     # Define the folder where the uploaded images will be stored and the maximum size of the uploaded files
-    BASE_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploaded_images')    
+    BASE_UPLOAD_FOLDER = os.path.join('static', 'uploads')    
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024                           
 
 logging.basicConfig(level=logging.INFO)  # Set the logging level to INFO
