@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app, render_template
+from flask import Blueprint, jsonify, request, current_app, render_template, url_for
 from app.models import Shelf, Camera
 from datetime import datetime
 from . import db
@@ -6,15 +6,59 @@ import os
 
 main = Blueprint('main', __name__)      # Create a Blueprint object
 
-@main.route('/home')
+@main.route('/home')                    # Route to the home page
 def home():
     return render_template('home.html')
 
-@main.route('/shelves')
+@main.route('/shelves')                 # Route to get all the shelves from the database, in order to display them in the home page
 def shelves():
-    shelves = Shelf.query.all()
-    results = [{"number": shelf.number, "description": shelf.description} for shelf in shelves]
-    return jsonify(results)
+
+    try:
+        shelves = Shelf.query.all()
+        current_app.logger.info(f" Retrieved {len(shelves)} shelves from the database.")
+        shelves_list = []
+        for shelf in shelves:
+
+            cameras = Camera.query.filter_by(shelf_number=shelf.number).all()       # Get all the cameras associated with the shelf
+
+            latest_camera = None
+            latest_update = None
+            latest_image_url = None
+
+            for camera in cameras:                  # Get the latest image from the cameras associated with the shelf
+                if camera.image_path:
+                    image_full_path = os.path.join(current_app.config['BASE_UPLOAD_FOLDER'], f'shelf_{camera.shelf_number}', f'camera_{camera.id}', camera.image_path)
+                    if os.path.exists(image_full_path):
+                        try:
+                            if camera.last_update:
+                                timestamp = camera.last_update
+                            else:
+                                # Fallback se last_update non è disponibile
+                                timestamp_str = camera.image_path.split('_')[1] + camera.image_path.split('_')[2]
+                                timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+
+                            if not latest_update or timestamp > latest_update:
+                                latest_update = timestamp
+                                latest_camera = camera
+                                latest_image_url = url_for('static', filename=f'uploads/shelf_{camera.shelf_number}/camera_{camera.id}/{camera.image_path}')
+                        except (IndexError, ValueError) as e:
+                            current_app.logger.error(f" Error parsing timestamp from image path: {camera.image_path} - {e}")
+                            continue
+
+            shelves_list.append({                   # Append the shelf data to the shelves_list
+                "number": shelf.number,
+                "description": shelf.description,
+                "image": latest_image_url if latest_image_url else url_for('static', filename='images/placeholder.jpg'),  # If there is no image, use a placeholder
+                "lastUpdate": latest_update.strftime("%Y-%m-%d %H:%M:%S") if latest_update else "N/A"
+            })
+
+            current_app.logger.info(f"Returning {len(shelves_list)} shelves as JSON.")
+            return jsonify(shelves_list)
+    except Exception as e:
+        current_app.logger.error(f" Error in /shelves route: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+                        
+                                      
 
 @main.route('/upload', methods=['POST'])        # Route to upload an image from a POST request by the ESP32 camera
 def upload_image():

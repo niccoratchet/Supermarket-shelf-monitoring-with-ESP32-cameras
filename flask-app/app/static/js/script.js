@@ -1,31 +1,19 @@
 // script.js
 
-// Shelves rows content simulation
-const shelvesData = [
-    {
-        id: 1,
-        name: "Scaffale A",
-        image: "https://via.placeholder.com/300x200", // Example image
-        lastUpdate: "2024-08-26 14:30"
-    },
-    {
-        id: 2,
-        name: "Scaffale B",
-        image: "https://via.placeholder.com/300x200",
-        lastUpdate: "2024-08-26 14:35"
-    },
-    {
-        id: 3,
-        name: "Scaffale C",
-        image: "https://via.placeholder.com/300x200",
-        lastUpdate: "2024-08-26 14:40"
-    }
-];
-
-// Used to create HTML elements for each shelf using Bootstrap cards
-function renderShelves() {
+// Function used to render shelves content in the page
+function renderShelves(shelves) {
     const shelvesContainer = document.getElementById('shelvesContainer');
-    shelvesData.forEach(shelf => {
+    shelvesContainer.innerHTML = '';                                        //  Clear the container before rendering new shelves
+
+    console.log('Rendering shelves:', shelves);
+
+    if (!Array.isArray(shelves)) {
+        console.error('Shelves data is not an array:', shelves);
+        alert('Error during shelves data rendering: data is not an array');
+        return;
+    }
+
+    shelves.forEach(shelf => {
         const col = document.createElement('div');
         col.className = 'col-md-4';
 
@@ -35,20 +23,25 @@ function renderShelves() {
         const img = document.createElement('img');
         img.src = shelf.image;
         img.className = 'card-img-top';
-        img.alt = `Immagine di ${shelf.name}`;
+        img.alt = `Immagine di ${shelf.number}`;
 
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body d-flex flex-column';
 
         const cardTitle = document.createElement('h5');
         cardTitle.className = 'card-title';
-        cardTitle.textContent = shelf.name;
+        cardTitle.textContent = shelf.number;
 
         const cardText = document.createElement('p');
         cardText.className = 'card-text mt-auto';
         cardText.textContent = `Ultimo aggiornamento: ${shelf.lastUpdate}`;
 
+        const cardDescription = document.createElement('p');
+        cardDescription.className = 'card-text';
+        cardDescription.textContent = shelf.description;
+
         cardBody.appendChild(cardTitle);
+        cardBody.appendChild(cardDescription);
         cardBody.appendChild(cardText);
 
         card.appendChild(img);
@@ -58,16 +51,33 @@ function renderShelves() {
     });
 }
 
-// Funzione per gestire il logout
-function handleLogout() {
-    // Simulazione logout
-    alert("Logout effettuato con successo!");
-    // Reindirizzamento a una pagina di login (non implementata)
-    // window.location.href = "login.html";
+// Function used to fetch shelves data from the backend
+async function fetchShelves() {
+    try {
+        const response = await fetch('/shelves');
+        console.log('Fetch response status:', response.status);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Fetch error response:', errorText);
+            throw new Error('Error during shelves data fetch');
+        }
+        const shelves = await response.json();
+        console.log('Shelves data received:', shelves);
+        renderShelves(shelves);
+    }
+    catch (error) {
+        console.error('Error:', error);
+        alert('Error during shelves data fetch');
+    }
 }
 
-// Event Listener per il caricamento della pagina
+// Function used to handle the logout (alert only)
+function handleLogout() {
+    alert("Logout successful!");
+}
+
+// Event listener for the logout button
 document.addEventListener('DOMContentLoaded', function() {
-    renderShelves();
+    fetchShelves();
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 });
