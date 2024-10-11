@@ -19,11 +19,17 @@ function renderShelves(shelves) {
 
         const card = document.createElement('div');
         card.className = 'card h-100';
+        card.style.cursor = 'pointer'; // Set cursor to pointer to indicate it's clickable
+
+        // Add event listener for the click
+        card.addEventListener('click', () => {
+            window.location.href = `/shelves/${shelf.number}`;              // Redirect to the details page for the specific shelf
+        });
 
         const img = document.createElement('img');
         img.src = shelf.image;
         img.className = 'card-img-top';
-        img.alt = `Immagine di ${shelf.number}`;
+        img.alt = `${shelf.number}'s image`;
 
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body d-flex flex-column';
@@ -34,7 +40,7 @@ function renderShelves(shelves) {
 
         const cardText = document.createElement('p');
         cardText.className = 'card-text mt-auto';
-        cardText.textContent = `Ultimo aggiornamento: ${shelf.lastUpdate}`;
+        cardText.textContent = `Last-update: ${shelf.lastUpdate}`;
 
         const cardDescription = document.createElement('p');
         cardDescription.className = 'card-text';

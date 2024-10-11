@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shelf Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container my-4">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">Shelf Details - {{ shelf.number }}</h1>
+            <button id="backBtn" class="btn btn-secondary">Back to Home</button>
+        </header>
+
+        <section id="shelfDetails" class="mt-4"></section>
+            <h2 class="h4 mb-3">Details for Shelf {{ shelf.number }}</h2>
+            <p class="mb-2"><strong>Description:</strong> {{ shelf.description }}</p>
+            <p class="mb-2"><strong>Last Update:</strong> {{ shelf.last_update }}</p>
+        </section>
+
+        <section id="productsSection" class="mt-4"></section>
+            <h2 class="h4 mb-3">Prodotti nello scaffale</h2>
+            {% if products %}
+                <ul class="list-group">
+                    {% for product, quantity in products %}
+                        <li class="list-group-item">
+                            <strong>{{ product.name }}</strong> - Categoria: {{ product.category }} - Quantità: {{ quantity }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Nessun prodotto presente in questo scaffale.</p>
+            {% endif %}
+        </section>
+
+        <section id="cameraSection" class="mt-4">
+            <h2 class="h4 mb-3">Cameras</h2>
+            <div class="row g-4">
+                {% for camera in cameras %}
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        {% if camera.image_path %}
+                            <img src="{{ url_for('static', filename='upload/shelf_' + str(shelf.number) + '/camera_' + str(camera.id) + str(camera.image_path) + '.jpg') }}" 
+                                 class="card-img-top" 
+                                 alt="Camera {{ camera.id }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
+                                 class="card-img-top" 
+                                 alt="No image available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">Camera {{ camera.id }}</h5>
+                            <p class="card-text">Additional camera details can go here.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = '/home';
+        });
+    </script>
+</body>
+</html>

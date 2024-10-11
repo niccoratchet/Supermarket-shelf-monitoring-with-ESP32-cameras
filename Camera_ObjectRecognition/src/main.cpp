@@ -506,7 +506,7 @@ void scanForObjects() {
       sendMQTTMessage(&client, MQTTTopic, outputString, number_of_objects, false, &config);
       if (photoToTransfer != NULL) {
         
-        if(sendPhotoToWebServer(photoToTransfer)) {
+        if(sendPhotoToWebServer(photoToTransfer, config)) {       // The photo is sent to the back-end
           Serial.println("Photo sent to the web server");
         }
         else

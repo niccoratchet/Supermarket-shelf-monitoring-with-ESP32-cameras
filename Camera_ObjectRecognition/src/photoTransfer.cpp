@@ -2,13 +2,14 @@
 
 bool sendPhotoToWebServer(camera_fb_t* photoToTransfer, Config& config) {
 
+    String SERVER_HOST = config.mqtt_server;        // The IP address of the server is the same as the MQTT broker
     WiFiClient client;
     Serial.print("Connecting to: ");
     Serial.print(SERVER_HOST);
     Serial.print(":");
     Serial.println(SERVER_PORT);
 
-    if (!client.connect(SERVER_HOST, SERVER_PORT)) {
+    if (!client.connect(SERVER_HOST.c_str(), SERVER_PORT)) {
         Serial.println("Connection failed");
         return false;
     }

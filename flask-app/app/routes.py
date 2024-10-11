@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, render_template, url_for
-from app.models import Shelf, Camera
+from app.models import Shelf, Camera, Product_Shelf, Product
 from datetime import datetime
 from . import db
 import os
@@ -52,13 +52,25 @@ def shelves():
                 "lastUpdate": latest_update.strftime("%Y-%m-%d %H:%M:%S") if latest_update else "N/A"
             })
 
-            current_app.logger.info(f"Returning {len(shelves_list)} shelves as JSON.")
-            return jsonify(shelves_list)
+        current_app.logger.info(f" Returning {len(shelves_list)} shelves as JSON.")
+        return jsonify(shelves_list)
     except Exception as e:
         current_app.logger.error(f" Error in /shelves route: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
                         
-                                      
+@main.route('/shelves/<number>')                                    # Route to get the details of a specific shelf (when a shelf is clicked)
+def shelf_details(number):
+    shelf = Shelf.query.filter_by(number=number).first()
+    if not shelf:
+        return "Shelf not found", 404
+
+    # Fetch the cameras associated with the shelf
+    cameras = Camera.query.filter_by(shelf_number=number).all()
+
+    # Fetch the products associated with the shelf
+    products = db.session.query(Product, Product_Shelf.quantity).join(Product_Shelf).filter(Product_Shelf.shelf_number == number).all()
+
+    return render_template('shelf_details.html', shelf=shelf, cameras=cameras, products=products)                             
 
 @main.route('/upload', methods=['POST'])        # Route to upload an image from a POST request by the ESP32 camera
 def upload_image():
