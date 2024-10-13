@@ -26,25 +26,29 @@ function renderShelves(shelves) {
             window.location.href = `/shelves/${shelf.number}`;              // Redirect to the details page for the specific shelf
         });
 
-        const img = document.createElement('img');
-        img.src = shelf.image;
-        img.className = 'card-img-top';
-        img.alt = `${shelf.number}'s image`;
+        const img = document.createElement('div');                          // Use a div instead of img
+        img.className = 'card-img-top card-img-placeholder';                // Add a placeholder class
+
+        if (!shelf.image.includes('placeholder')) {                            // Check if the image is not a placeholder
+            img.style.backgroundImage = `url(${shelf.image})`;
+        } else {
+            img.textContent = 'No image available';
+        }
 
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body d-flex flex-column';
 
         const cardTitle = document.createElement('h5');
         cardTitle.className = 'card-title';
-        cardTitle.textContent = shelf.number;
+        cardTitle.textContent = 'Shelf n° ' + shelf.number;
 
         const cardText = document.createElement('p');
         cardText.className = 'card-text mt-auto';
-        cardText.textContent = `Last-update: ${shelf.lastUpdate}`;
+        cardText.innerHTML = `<strong>Last update:</strong> ${shelf.lastUpdate}`;
 
         const cardDescription = document.createElement('p');
         cardDescription.className = 'card-text';
-        cardDescription.textContent = shelf.description;
+        cardDescription.innerHTML = `<strong>Products category:</strong> ${shelf.description}`;
 
         cardBody.appendChild(cardTitle);
         cardBody.appendChild(cardDescription);
@@ -57,7 +61,7 @@ function renderShelves(shelves) {
     });
 }
 
-// Function used to fetch shelves data from the backend
+// Function used to fetch shelves data from the backend using AJAX (fetch) 
 async function fetchShelves() {
     try {
         const response = await fetch('/shelves');

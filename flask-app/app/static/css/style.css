@@ -13,3 +13,26 @@ header h1 {
 section h2 {
     color: #555;
 }
+
+.card-img-placeholder {             /* This class is used to display a placeholder when an image of a shelf is not inserted */
+    width: 100%;
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.1);           /* In order to make placeholder more visible */
+    color: black;
+    font-size: 18px;
+    text-align: center;
+    background-size: cover;
+    background-position: center;
+}
+
+.card {
+    overflow: hidden;                       /* It prevents overflows */
+}
+
+.text-muted {
+    font-size: 1.2rem;
+    color: #6c757d;         /* Bootstrap grey */
+}

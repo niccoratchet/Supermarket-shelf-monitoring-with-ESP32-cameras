@@ -18,47 +18,56 @@
         <section id="shelfDetails" class="mt-4"></section>
             <h2 class="h4 mb-3">Details for Shelf {{ shelf.number }}</h2>
             <p class="mb-2"><strong>Description:</strong> {{ shelf.description }}</p>
-            <p class="mb-2"><strong>Last Update:</strong> {{ shelf.last_update }}</p>
+            {% if cameras %}
+                <p class="mb-2"><strong>Last Update:</strong> {{ last_update }}  (Camera{{ last_update_camera.id }})</p>
+            {% else %}
+                <p class="mb-2"><strong>Last Update:</strong> N/A </p>
+            {% endif %}
         </section>
-
         <section id="productsSection" class="mt-4"></section>
-            <h2 class="h4 mb-3">Prodotti nello scaffale</h2>
+            <h2 class="h4 mb-3">Products</h2>
             {% if products %}
                 <ul class="list-group">
                     {% for product, quantity in products %}
                         <li class="list-group-item">
-                            <strong>{{ product.name }}</strong> - Categoria: {{ product.category }} - Quantità: {{ quantity }}
+                            <strong>{{ product.name }}</strong> - Category: {{ product.category }} - Quantity: {{ quantity }}
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p>Nessun prodotto presente in questo scaffale.</p>
+                <p>No products are registered in this shelf.</p>
             {% endif %}
         </section>
 
         <section id="cameraSection" class="mt-4">
             <h2 class="h4 mb-3">Cameras</h2>
-            <div class="row g-4">
-                {% for camera in cameras %}
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        {% if camera.image_path %}
-                            <img src="{{ url_for('static', filename='upload/shelf_' + str(shelf.number) + '/camera_' + str(camera.id) + str(camera.image_path) + '.jpg') }}" 
-                                 class="card-img-top" 
-                                 alt="Camera {{ camera.id }}">
-                        {% else %}
-                            <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
-                                 class="card-img-top" 
-                                 alt="No image available">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">Camera {{ camera.id }}</h5>
-                            <p class="card-text">Additional camera details can go here.</p>
+            {% if cameras %}
+                <div class="row g-4">
+                    {% for camera in cameras %}
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            {% if camera.image_path %}
+                                <img src="{{ url_for('static', filename='uploads/shelf_' ~ shelf.number ~ '/camera_' ~ camera.id ~ '/' ~ camera.image_path) }}"
+                                        class="card-img-top img-fluid" alt="Camera {{ camera.id }}">
+                            {% else %}
+                                <div class="card-img-placeholder">
+                                    No image available
+                                </div>
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">Camera {{ camera.id }}</h5>
+                                <p class="card-text">Last update: {{ camera.last_update }}</p>
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
+            {% else %}
+                <div class="d-flex flex-column align-items-center justify-content-center" style="height: 200px;">
+                    <img src="{{ url_for('static', filename='images/no-cameras.png') }}" alt="No cameras" class="mb-3" style="width: 100px; opacity: 0.6;">
+                    <p class="text-muted">No cameras connected</p>
+                </div>
+            {% endif %}
         </section>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

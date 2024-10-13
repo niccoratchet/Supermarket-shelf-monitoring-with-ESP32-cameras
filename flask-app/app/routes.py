@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app, render_template, url_for
 from app.models import Shelf, Camera, Product_Shelf, Product
 from datetime import datetime
+from app.utils import get_latest_update
 from . import db
 import os
 
@@ -60,17 +61,19 @@ def shelves():
                         
 @main.route('/shelves/<number>')                                    # Route to get the details of a specific shelf (when a shelf is clicked)
 def shelf_details(number):
+
     shelf = Shelf.query.filter_by(number=number).first()
     if not shelf:
         return "Shelf not found", 404
 
     # Fetch the cameras associated with the shelf
     cameras = Camera.query.filter_by(shelf_number=number).all()
+    last_update_camera, last_update = get_latest_update(cameras)
 
     # Fetch the products associated with the shelf
     products = db.session.query(Product, Product_Shelf.quantity).join(Product_Shelf).filter(Product_Shelf.shelf_number == number).all()
 
-    return render_template('shelf_details.html', shelf=shelf, cameras=cameras, products=products)                             
+    return render_template('shelf_details.html', shelf=shelf, cameras=cameras, products=products, last_update_camera=last_update_camera, last_update=last_update)                             
 
 @main.route('/upload', methods=['POST'])        # Route to upload an image from a POST request by the ESP32 camera
 def upload_image():
@@ -128,7 +131,7 @@ def upload_image():
             db.session.commit()
 
             current_app.logger.info(f" File {filename} uploaded successfully to {file_path}")
-            return jsonify({"message": f"File uploaded successfully!"}), 200
+            return jsonify({"message": f" File uploaded successfully!"}), 200
         except Exception as e:
             current_app.logger.error(f" Failed to upload file {filename}: {e}")
             return jsonify({"error": "File upload failed"}), 500
