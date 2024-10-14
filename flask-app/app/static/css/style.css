@@ -36,3 +36,11 @@ section h2 {
     font-size: 1.2rem;
     color: #6c757d;         /* Bootstrap grey */
 }
+
+.card.d-flex.align-items-center.justify-content-center {        /* This class is used to center the the 'Add shelf' card */
+    background-color: #e9ecef;
+}
+
+.card.d-flex.align-items-center.justify-content-center:hover {      /* This class is used to change the background color of the 'Add shelf' card when hovered */
+    background-color: #dee2e6;
+}

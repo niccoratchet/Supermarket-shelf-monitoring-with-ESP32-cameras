@@ -59,7 +59,48 @@ function renderShelves(shelves) {
         col.appendChild(card);
         shelvesContainer.appendChild(col);
     });
+
+    renderAddShelfCard();        // Render the card to add a new shelf
+
 }
+
+function renderAddShelfCard() {
+    const col = document.createElement('div');
+    col.className = 'col-md-4';
+
+    const card = document.createElement('div');     // Add text-center class to center the content
+    card.className = 'card h-100 text-center';
+    card.style.cursor = 'pointer'; 
+
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body d-flex flex-column justify-content-center align-items-center';
+    cardBody.style.backgroundColor = '#f0f0f0';
+
+    const icon = document.createElement('i');
+    icon.className = 'bi bi-plus-lg';
+    icon.style.fontSize = '48px';
+    icon.style.color = '#6c757d';
+
+    const text = document.createElement('p');
+    text.className = 'mt-3';
+    text.textContent = 'Add shelf';
+    text.style.color = '#6c757d';
+    text.style.fontSize = '16px';
+
+    cardBody.appendChild(icon);
+    cardBody.appendChild(text);
+
+    card.appendChild(cardBody);
+    col.appendChild(card);
+
+    // Add event listener for the click on the card to add a new shelf
+    card.addEventListener('click', () => {
+        alert('Add shelf clicked!');
+    });
+
+    shelvesContainer.appendChild(col);
+}
+
 
 // Function used to fetch shelves data from the backend using AJAX (fetch) 
 async function fetchShelves() {
