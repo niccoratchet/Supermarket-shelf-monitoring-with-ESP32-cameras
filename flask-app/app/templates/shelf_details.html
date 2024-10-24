@@ -12,6 +12,7 @@
     <div class="container my-4">
         <header class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3">Shelf Details - {{ shelf.number }}</h1>
+            <button id="editBtn" class="btn btn-primary">Edit Shelf</button>
             <button id="backBtn" class="btn btn-secondary">Back to Home</button>
         </header>
 
@@ -74,6 +75,9 @@
     <script>
         document.getElementById('backBtn').addEventListener('click', () => {
             window.location.href = '/home';
+        });
+        document.getElementById('editBtn').addEventListener('click', () => {
+            window.location.href = '/update_shelf_form/{{ shelf.number }}';
         });
     </script>
 </body>

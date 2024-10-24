@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app, render_template, url_for
+from flask import Blueprint, json, jsonify, request, current_app, render_template, url_for
 from app.models import Shelf, Camera, Product_Shelf, Product
 from datetime import datetime
 from app.utils import get_latest_update
@@ -168,7 +168,8 @@ def add_shelf():
     cameras_to_update = []
     areAllCamerasCHecked = False
     while areAllCamerasCHecked == False:
-        current_app.logger.info(f" Camera id: {camera_id}")
+        camera_id = request.form.get(f'camera{len(cameras_to_update) + 1}')
+        current_app.logger.info(f" Camera id: {camera_id} with index {len(cameras_to_update) + 1}")
         if camera_id:
             if camera_id != 'Select a camera':              # Check if the camera is selected
                 cameras_to_update.append(camera_id)
@@ -186,4 +187,64 @@ def add_shelf():
         camera.shelf_number = shelf_number
         db.session.commit()
 
+    return render_template('home.html')                                      # Redirect to the home page
+
+@main.route('/update_shelf_form/<number>')        # Route to display the form to update a shelf
+def update_shelf_form(number):
+
+    shelf = Shelf.query.filter_by(number=number).first()        # Get the shelf from the database
+    if not shelf:
+        return "Shelf not found", 404
+
+    # Extracting not connected cameras to any shelf
+    cameras = Camera.query.filter_by(shelf_number=None).all()
+    available_cameras = []
+    for camera in cameras:
+        available_cameras.append({
+            "id": camera.id,
+            "description": camera.description
+        })
+
+    # Extracting cameras connected to the shelf
+    cameras = Camera.query.filter_by(shelf_number=number).all()
+    connected_cameras = []
+    for camera in cameras:
+        connected_cameras.append({
+            "id": camera.id,
+            "description": camera.description
+        })
+
+    return render_template('update_shelf.html', shelf=shelf, available_cameras=available_cameras, connected_cameras=connected_cameras)
+
+@main.route('/update_shelf/<number>', methods=['POST'])
+def update_shelf(number):
+    shelf = Shelf.query.filter_by(number=number).first()
+    if not shelf:
+        return "Shelf not found", 404
+
+    # Update the shelf description and number
+    shelf.description = request.form['shelfName']
+    shelf.number = request.form['shelfNumber']
+    current_app.logger.info(f" Updating shelf {shelf.number} with name {shelf.description}")
+
+    # Remove cameras disconnected from the shelf
+    remove_cameras_json = request.form.get('removeCameras', '[]')
+    try:
+        remove_cameras = json.loads(remove_cameras_json)            # JavaScript code responds with JSON format data. Convert JSON string to list
+        current_app.logger.info(f" Removing {len(remove_cameras)} cameras from shelf {shelf.number}")
+        for camera_id in remove_cameras:
+            camera = Camera.query.filter_by(id=int(camera_id)).first()
+            if camera:
+                camera.shelf_number = None  # Disconnect the camera from the shelf
+    except ValueError as e:
+        return f"Error processing camera removal: {e}", 400
+
+    # Add new cameras
+    new_cameras = request.form.getlist('availableCameras')
+    for camera_id in new_cameras:
+        camera = Camera.query.filter_by(id=camera_id).first()
+        if camera:
+            camera.shelf_number = shelf.number      # Connects the camera to the shelf
+
+    db.session.commit()
     return render_template('home.html')                                      # Redirect to the home page

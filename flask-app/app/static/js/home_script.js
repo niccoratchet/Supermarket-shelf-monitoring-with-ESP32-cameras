@@ -122,13 +122,7 @@ async function fetchShelves() {
     }
 }
 
-// Function used to handle the logout (alert only)
-function handleLogout() {
-    alert("Logout successful!");
-}
-
 // Event listener for the logout button
 document.addEventListener('DOMContentLoaded', function() {
     fetchShelves();
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 });
