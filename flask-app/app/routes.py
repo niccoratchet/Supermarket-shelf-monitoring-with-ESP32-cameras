@@ -135,3 +135,55 @@ def upload_image():
         except Exception as e:
             current_app.logger.error(f" Failed to upload file {filename}: {e}")
             return jsonify({"error": "File upload failed"}), 500
+        
+@main.route('/add_shelf_form')                   # Route to display the form to add a new shelf
+def add_shelf_form():
+
+    cameras = Camera.query.filter_by(shelf_number=None).all()       # Extracting not connected cameras from the database
+    # Loop in order to display available cameras to connect to the shelf
+    available_cameras = []
+    for camera in cameras:
+        available_cameras.append({
+            "id": camera.id,
+            "description": camera.description
+        })
+    return render_template('add_shelf.html', available_cameras=available_cameras)
+
+@main.route('/add_shelf', methods=['POST'])      # Route to add a new shelf to the database
+def add_shelf():
+
+    shelf_number = request.form.get('shelfNumber')          # Get the shelf number from the form
+    shelf_name = request.form.get('shelfName')    # Get the shelf description from the form
+
+    # Check if the form fields are empty
+    if not shelf_number or not shelf_name:
+        return jsonify({"error": "All fields are required"}), 400
+    
+    # Check if the shelf number already exists in the database
+    shelf = Shelf.query.filter_by(number=shelf_number).first()    
+    if shelf:
+        return jsonify({"error": "Shelf already exists"}), 400
+    
+    # Extract cameras id from the form (every select box has a name formed by 'camera_id_' + camera_id)
+    cameras_to_update = []
+    areAllCamerasCHecked = False
+    while areAllCamerasCHecked == False:
+        current_app.logger.info(f" Camera id: {camera_id}")
+        if camera_id:
+            if camera_id != 'Select a camera':              # Check if the camera is selected
+                cameras_to_update.append(camera_id)
+        else:
+            areAllCamerasCHecked = True
+    
+    new_shelf = Shelf(number=shelf_number, description=shelf_name)    # Create a new shelf object
+    db.session.add(new_shelf)                                               # Add the new shelf to the session
+    db.session.commit()
+
+    current_app.logger.info(f" New shelf has {len(cameras_to_update)} cameras connected to it.")
+    # Update the cameras with the new shelf number
+    for camera_id in cameras_to_update:
+        camera = Camera.query.get(int(camera_id))
+        camera.shelf_number = shelf_number
+        db.session.commit()
+
+    return render_template('home.html')                                      # Redirect to the home page

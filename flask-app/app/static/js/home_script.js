@@ -65,23 +65,23 @@ function renderShelves(shelves) {
 }
 
 function renderAddShelfCard() {
-    const col = document.createElement('div');
+    const col = document.createElement('div');      // Add col-md-4 class to make the card occupy 1/3 of the row
     col.className = 'col-md-4';
 
     const card = document.createElement('div');     // Add text-center class to center the content
     card.className = 'card h-100 text-center';
     card.style.cursor = 'pointer'; 
 
-    const cardBody = document.createElement('div');
+    const cardBody = document.createElement('div');         // Add d-flex, flex-column, justify-content-center and align-items-center classes to center the content
     cardBody.className = 'card-body d-flex flex-column justify-content-center align-items-center';
     cardBody.style.backgroundColor = '#f0f0f0';
 
-    const icon = document.createElement('i');
+    const icon = document.createElement('i');       // Add bi-plus-lg class to use the plus icon from Bootstrap Icons
     icon.className = 'bi bi-plus-lg';
     icon.style.fontSize = '48px';
     icon.style.color = '#6c757d';
 
-    const text = document.createElement('p');
+    const text = document.createElement('p');           // Add mt-3 class to add margin top
     text.className = 'mt-3';
     text.textContent = 'Add shelf';
     text.style.color = '#6c757d';
@@ -95,7 +95,7 @@ function renderAddShelfCard() {
 
     // Add event listener for the click on the card to add a new shelf
     card.addEventListener('click', () => {
-        alert('Add shelf clicked!');
+        window.location.href = `/add_shelf_form`;              // Redirect to the form to add a new shelf
     });
 
     shelvesContainer.appendChild(col);

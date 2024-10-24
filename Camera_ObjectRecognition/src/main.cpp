@@ -120,7 +120,7 @@
 static bool debug_nn = false;                   // Set this to true to see e.g. features generated from the raw signal
 static bool is_initialised = false;
 uint8_t *snapshot_buf;                          // Points to the output of the capture. It's used by the Edge Impulse SDK to manipulate the image. The original photo is in the camera_fb_t struct.
-float minConfidence = 0.85;
+float minConfidence = 0.5;
 camera_fb_t *photoToTransfer = NULL;            // It is used to store the photo taken by the camera and then transfer it to the back-end
 
 static camera_config_t camera_config = {        // Values definition about the struct "camera_config": it is used to configure parameters like PINs on the board, photo's quality and resolution ecc..
