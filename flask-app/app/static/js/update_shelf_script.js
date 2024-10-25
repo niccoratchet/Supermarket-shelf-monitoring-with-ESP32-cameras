@@ -34,8 +34,15 @@ document.addEventListener("DOMContentLoaded", function() {
             formData.append('availableCameras', camera.value);
         });
 
+        // Extract shelf number from headerTitle element excluding the Update Shelf - 
+        const headerElement = document.getElementById("headerTitle");
+        const headerText = headerElement.innerText;
+        const match = headerText.match(/-\s*(.+)/);
+        const actualShelfNumber = match ? match[1] : null;
+        console.log(actualShelfNumber);
+
         // Send the form data to the server via Fetch API
-        fetch(`/update_shelf/${document.getElementById("shelfNumber").value}`, {
+        fetch(`/update_shelf/${actualShelfNumber}`, {
             method: "POST",
             body: formData
         })

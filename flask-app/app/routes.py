@@ -222,6 +222,12 @@ def update_shelf(number):
     shelf = Shelf.query.filter_by(number=number).first()
     if not shelf:
         return "Shelf not found", 404
+    
+    # Reset the shelf's cameras
+    cameras = Camera.query.filter_by(shelf_number=number).all()
+    for camera in cameras:
+        camera.shelf_number = None
+        db.session.commit()
 
     # Update the shelf description and number
     shelf.description = request.form['shelfName']
@@ -258,6 +264,12 @@ def update_shelf(number):
 
     except ValueError as e:
         return f"Error processing camera removal: {e}", 400
+    
+    # Update already connected cameras with new shelf number
+    cameras = Camera.query.filter_by(shelf_number=shelf.number).all()
+    for camera in cameras:
+        camera.shelf_number = shelf.number
+        db.session.commit()
 
     # Add new cameras
     new_cameras = request.form.getlist('availableCameras')
@@ -274,5 +286,27 @@ def update_shelf(number):
                 product_shelf = Product_Shelf(product_id=product_id, shelf_number=shelf.number, quantity=0)         # If the product is not tracked by any other camera in the shelf, add it to the shelf
                 db.session.add(product_shelf)
 
+    db.session.commit()
+    return render_template('home.html')                                      # Redirect to the home page
+
+@main.route('/delete_shelf/<number>', methods=['POST'])        # Route to delete a shelf from the database
+def delete_shelf(number):
+    shelf = Shelf.query.filter_by(number=number).first()
+    if not shelf:
+        return "Shelf not found", 404
+    
+    # Remove Products_Shelf rows associated with the shelf
+    products_shelf = Product_Shelf.query.filter_by(shelf_number=number).all()
+    for product_shelf in products_shelf:
+        db.session.delete(product_shelf)
+
+    # Remove Cameras associated with the shelf
+    cameras = Camera.query.filter_by(shelf_number=number).all()
+    for camera in cameras:
+        camera.shelf_number = None
+        db.session.commit()
+
+    # Remove the shelf from the database
+    db.session.delete(shelf)
     db.session.commit()
     return render_template('home.html')                                      # Redirect to the home page
