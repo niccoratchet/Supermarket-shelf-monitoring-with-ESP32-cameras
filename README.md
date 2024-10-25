@@ -7,7 +7,15 @@ Per poter funzionare, l'applicazione è composta da tre parti principali: <br />
    modello ML. Il modello è stato creato grazie al framework online Edge Impulse (https://edgeimpulse.com/) ed è stato allenato con degli oggetti che potenzialmente possono essere presenti su uno scaffale (ad esempio una confezione di panna da cucina).
    I risultati dell'inferenza verrano poi trasmessi tramite protocollo MQTT su un MQTT Broker (server). I messaggi contengono le informazioni su quali e quanti prodotti sono presenti e il grado di confidenza con cui il modello assicura
    sulla loro presenza (non si accettano risultati con un tasso di confidenza inferiore all'85%).  
-2. Un back-end che conterrà due parti principali: un'applicazione web creata grazie al framework Flask che si occuperà di gestire le richieste dei front-end (vedi punto successivo) e l'altra parte che si occupa di recepire i messaggi MQTT
-   inviati dalle camere e quindi intepretando i risultati.
+2. Un back-end che conterrà due parti principali: un'applicazione web creata grazie al framework Flask che si occuperà di gestire le richieste dei front-end (vedi punto successivo) e l'altra parte che si occupa di recepire i messaggi MQTT e le foto
+   inviate dalle camere. Tiene traccia dello stato di scaffali, prodotti e camere attraverso l'utilizzo di DB.
 3. Un front-end che si occupa di fornire le informazioni all'utente sullo stato di tutti gli scaffali monitorati. Grazie infatti alle informazioni date dal back-end, e' possibile vedere per ogni scaffale quali e quanti prodotti sono presenti,
    la foto sulla quale si basa il riconoscimento e il tempo passato dall'ultimo aggiornamento.
+
+Per il backend vengono utilizzati 4 container Docker che gestiscono 4 servizi distinti. In particolare abbiamo il container:
+1. Flask WebServer
+2. PostGreSQL
+3. pgAdmin (per gestire il DB attraverso un'interfaccia web)
+4. mqtt-broker (in particolare viene usato mosquitto)
+
+La parte frontend è stata invece sviluppata usando Bootstrap.
