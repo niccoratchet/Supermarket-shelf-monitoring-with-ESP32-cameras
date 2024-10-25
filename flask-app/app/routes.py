@@ -1,5 +1,5 @@
 from flask import Blueprint, json, jsonify, request, current_app, render_template, url_for
-from app.models import Shelf, Camera, Product_Shelf, Product
+from app.models import Shelf, Camera, Product_Shelf, Product, Camera_Product
 from datetime import datetime
 from app.utils import get_latest_update
 from . import db
@@ -34,7 +34,7 @@ def shelves():
                             if camera.last_update:
                                 timestamp = camera.last_update
                             else:
-                                # Fallback se last_update non è disponibile
+                                # Fallback if the last_update field is empty
                                 timestamp_str = camera.image_path.split('_')[1] + camera.image_path.split('_')[2]
                                 timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
 
@@ -59,7 +59,8 @@ def shelves():
         current_app.logger.error(f" Error in /shelves route: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
                         
-@main.route('/shelves/<number>')                                    # Route to get the details of a specific shelf (when a shelf is clicked)
+# Route to get the details of a specific shelf (when a shelf is clicked)
+@main.route('/shelves/<number>')                                    
 def shelf_details(number):
 
     shelf = Shelf.query.filter_by(number=number).first()
@@ -235,7 +236,26 @@ def update_shelf(number):
         for camera_id in remove_cameras:
             camera = Camera.query.filter_by(id=int(camera_id)).first()
             if camera:
+                current_app.logger.info(f" Removing camera {camera.id} from shelf {shelf.number}")
                 camera.shelf_number = None  # Disconnect the camera from the shelf
+            
+            # Check if other cameras track the same products in the same shelf
+            current_app.logger.info(f" Checking if other cameras track the same products in the shelf {shelf.number}")
+            products_ids = [pid[0] for pid in db.session.query(Camera_Product.product_id).filter_by(camera_id=camera_id).all()]     # Extract products ids tracked by the camera
+            for product_id in products_ids:
+                other_cameras = db.session.query(Camera).filter_by(shelf_number=shelf.number).all()         # Extract cameras connected to the same shelf of the disconnected one
+                product_tracked = False
+                for other_camera in other_cameras:
+                    if Camera_Product.query.filter_by(camera_id=other_camera.id, product_id=product_id).first():
+                        product_tracked = True
+                        current_app.logger.info(f" Product {product_id} is tracked by another camera in the shelf {shelf.number}. Not removing it.")
+                        break
+                if not product_tracked:
+                    # If the product is not tracked by any other camera in the shelf, remove it from the shelf
+                    current_app.logger.info(f" Product {product_id} is not tracked by any other camera in the shelf {shelf.number}. Removing it.")
+                    product_shelf = Product_Shelf.query.filter_by(product_id=product_id, shelf_number=shelf.number).first()
+                    db.session.delete(product_shelf)
+
     except ValueError as e:
         return f"Error processing camera removal: {e}", 400
 
@@ -245,6 +265,14 @@ def update_shelf(number):
         camera = Camera.query.filter_by(id=camera_id).first()
         if camera:
             camera.shelf_number = shelf.number      # Connects the camera to the shelf
+        
+        # Check if the camera tracks new product for this shelf
+        products_ids = [pid[0] for pid in db.session.query(Camera_Product.product_id).filter_by(camera_id=camera_id).all()]     # Extract products ids tracked by the camera
+        for product_id in products_ids:
+            if not Product_Shelf.query.filter_by(product_id=product_id, shelf_number=shelf.number).first():
+                current_app.logger.info(f" Product {product_id} tracked by {camera_id} is new for the shelf {shelf.number}. Adding it.")
+                product_shelf = Product_Shelf(product_id=product_id, shelf_number=shelf.number, quantity=0)         # If the product is not tracked by any other camera in the shelf, add it to the shelf
+                db.session.add(product_shelf)
 
     db.session.commit()
     return render_template('home.html')                                      # Redirect to the home page
