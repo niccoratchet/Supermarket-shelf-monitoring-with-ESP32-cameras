@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  mqtt-broker:
+  mqtt_broker:
     image: eclipse-mosquitto:latest
-    container_name: mqtt-broker
+    container_name: mqtt_broker
     ports:
       - "1883:1883"         # MQTT communication port
       - "9001:9001"         # WebSockets port (for access via browser)
@@ -12,17 +12,17 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
     networks:
-      - app-network
+      - app_network
   
   webserver:
     build:
       context: ./flask-app
       dockerfile: Dockerfile
-    container_name: flask-webserver
+    container_name: flask_webserver
     ports:
       - "5000:5000"
     networks:
-      - app-network
+      - app_network
     environment:
       - MQTT_BROKER=${MQTT_BROKER}
       - MQTT_PORT=${MQTT_PORT}
@@ -31,7 +31,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - db
-      - mqtt-broker
+      - mqtt_broker
 
   db:
     image: postgres:15
@@ -44,7 +44,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - app-network
+      - app_network
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -57,11 +57,11 @@ services:
     depends_on:
       - db
     networks:
-      - app-network
+      - app_network
       
 volumes:
   postgres_data:
 
 networks:
-  app-network:
+  app_network:
     driver: bridge
