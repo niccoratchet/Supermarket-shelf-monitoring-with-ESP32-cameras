@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   mqtt_broker:
-    image: eclipse-mosquitto:latest
+    build:
+      context: ./mosquitto
+      dockerfile: Mosquitto.DockerFile
     container_name: mqtt_broker
     ports:
       - "1883:1883"         # MQTT communication port

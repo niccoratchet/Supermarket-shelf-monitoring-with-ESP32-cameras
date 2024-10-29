@@ -21,8 +21,8 @@ def init_mqtt_handlers(app, mqtt_client):
 
     # Called when a message is received from the broker
     def on_message(client, userdata, msg):
+        cameraID = msg.topic.split("/")[1]              # Extract the camera ID from the topic
         if msg.topic.startswith("inference/"):
-            cameraID = msg.topic.split("/")[1]              # Extract the camera ID from the topic
             if msg.payload.decode() == "No objects found":
                 app.logger.info(f" Camera n° {cameraID} has not spotted any object")
                 updateCameraProductQuantity(cameraID, "No objects found")

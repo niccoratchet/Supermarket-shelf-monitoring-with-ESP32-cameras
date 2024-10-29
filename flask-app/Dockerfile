@@ -1,18 +1,18 @@
-# Usa un'immagine base di Python
+# Use the official Python image from the Docker Hub
 FROM python:3.9-slim
 
-# Imposta la directory di lavoro nel container
+# Set the working directory in the container
 WORKDIR /app
 
-# Copia il file dei requisiti e installa le dipendenze
+# Copy requirements file and install dependencies
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia il codice sorgente nel container
+# Copy source code to the container
 COPY . .
 
-# Espone la porta 5000 per Flask
+# Expose the port the app runs on
 EXPOSE 5000
 
-# Comando per avviare l'app Flask
+# Run the application
 CMD ["python", "app.py"]

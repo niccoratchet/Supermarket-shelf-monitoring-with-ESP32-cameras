@@ -26,6 +26,7 @@ def create_app():
     app.register_blueprint(main_blueprint)
 
     # MQTT Client initialization
+    app.logger.info(f" MQTT Credentials: MQTT Broker: {app.config['MQTT_BROKER']}, Port: {app.config['MQTT_PORT']}, User: {app.config['MQTT_USER']}, Password: {app.config['MQTT_PASSWORD']}")
     mqtt_client = mqtt.Client()
     mqtt_client.username_pw_set(app.config['MQTT_USER'], app.config['MQTT_PASSWORD'])
     from app.mqtt_handlers import init_mqtt_handlers                                        # Importing here to avoid circular imports
