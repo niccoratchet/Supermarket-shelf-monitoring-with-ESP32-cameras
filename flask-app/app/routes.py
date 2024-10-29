@@ -222,17 +222,12 @@ def update_shelf(number):
     shelf = Shelf.query.filter_by(number=number).first()
     if not shelf:
         return "Shelf not found", 404
-    
-    # Reset the shelf's cameras
-    cameras = Camera.query.filter_by(shelf_number=number).all()
-    for camera in cameras:
-        camera.shelf_number = None
-        db.session.commit()
 
     # Update the shelf description and number
+    current_app.logger.info(f" Updating shelf {shelf.number} with name {shelf.description}")
     shelf.description = request.form['shelfName']
     shelf.number = request.form['shelfNumber']
-    current_app.logger.info(f" Updating shelf {shelf.number} with name {shelf.description}")
+    current_app.logger.info(f" To shelf {shelf.number} with name {shelf.description}")
 
     # Remove cameras disconnected from the shelf
     remove_cameras_json = request.form.get('removeCameras', '[]')
@@ -264,12 +259,6 @@ def update_shelf(number):
 
     except ValueError as e:
         return f"Error processing camera removal: {e}", 400
-    
-    # Update already connected cameras with new shelf number
-    cameras = Camera.query.filter_by(shelf_number=shelf.number).all()
-    for camera in cameras:
-        camera.shelf_number = shelf.number
-        db.session.commit()
 
     # Add new cameras
     new_cameras = request.form.getlist('availableCameras')

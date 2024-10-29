@@ -72,9 +72,11 @@ def init_mqtt_handlers(app, mqtt_client):
                     db.session.add(newProduct)
                     db.session.commit()
                     newCameraProduct = Camera_Product(camera_id=newCamera.id, product_id=newProduct.id)
-                    newProductShelf = Product_Shelf(product_id=newProduct.id, shelf_number=newCamera.shelf_number)
+                    if newCamera.shelf_number is not None:
+                        newProductShelf = Product_Shelf(product_id=product.id, shelf_number=newCamera.shelf_number)
                     db.session.add(newCameraProduct)
-                    db.session.add(newProductShelf)
+                    if newCamera.shelf_number is not None:
+                        db.session.add(newProductShelf)
                     db.session.commit()
 
     def updateCameraProductQuantity(cameraID, msgPayload):  # This function is called when a camera sends the quantity of a product

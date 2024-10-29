@@ -10,7 +10,7 @@ class Shelf(db.Model):          # This class represents the Shelf table in the d
 class Camera(db.Model):         # This class represents the Camera table in the database
     __tablename__ = 'camera'
     id = db.Column(db.Integer, primary_key=True)
-    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), nullable=True)
+    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number', ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
     description = db.Column(db.Text, nullable=True)
     image_path = db.Column(db.Text, nullable=True)
     last_update = db.Column(db.DateTime, nullable=True)             # It indicates when the recognition was done for the last time
@@ -28,16 +28,16 @@ class Product(db.Model):        # This class represents the Product table in the
 
 class Camera_Product(db.Model):  # This class represents the Camera_Product table in the database
     __tablename__ = 'camera_product'
-    camera_id = db.Column(db.Integer, db.ForeignKey('camera.id'), primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
+    camera_id = db.Column(db.Integer, db.ForeignKey('camera.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
     quantity = db.Column(db.Integer, nullable=False, default=0)
     def __repr__(self):
         return f'<Camera_Product {self.camera_id} - {self.product_id}>'
 
 class Product_Shelf(db.Model):  # This class represents the Product_Shelf table in the database
     __tablename__ = 'product_shelf'
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), primary_key=True)
-    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
+    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
     quantity = db.Column(db.Integer, nullable=False, default=0)
     def __repr__(self):
         return f'<Product_Shelf {self.product_id} - {self.shelf_number}>'
