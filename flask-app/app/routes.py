@@ -222,6 +222,13 @@ def update_shelf(number):
     shelf = Shelf.query.filter_by(number=number).first()
     if not shelf:
         return "Shelf not found", 404
+    
+    # Verify if the new shelf number already exists in the database
+    new_shelf_number = request.form.get('shelfNumber')
+    if new_shelf_number != number:
+        checking_shelf = Shelf.query.filter_by(number=new_shelf_number).first()
+        if checking_shelf:
+            return jsonify({"error": f"Shelf with number {new_shelf_number} already exists"}), 400
 
     # Update the shelf description and number
     current_app.logger.info(f" Updating shelf {shelf.number} with name {shelf.description}")

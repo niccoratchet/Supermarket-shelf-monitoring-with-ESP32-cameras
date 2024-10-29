@@ -47,12 +47,14 @@ document.addEventListener("DOMContentLoaded", function() {
             body: formData
         })
         .then(response => {
-            if (response.ok) {
-                window.location.href = '/home';  // Redirect to home on success
-            } else {
-                alert("Error updating shelf.");
-            }
-        })
+        if (response.ok) {
+            window.location.href = '/home';  // Redirect to home on success
+        } else {
+            return response.json().then(data => {  // Leggi il JSON di errore
+                alert(data.error);  // Visualizza il messaggio specifico
+            });
+        }
+})
         .catch(error => {
             console.error('Error:', error);
             alert("There was a problem updating the shelf.");
