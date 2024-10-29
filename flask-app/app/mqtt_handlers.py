@@ -40,7 +40,7 @@ def init_mqtt_handlers(app, mqtt_client):
     def newCameraConfiguration(client, userdata, msg):  # This function is called when a new camera is connected and needs to be configured
         with app.app_context():
             app.logger.info("A new camera needs to be configured. Generating a new ID...")
-            newCamera = Camera(shelf_number="1", description="ESP32")                           # TODO: Shelf's number and camera's description should be changed by the user
+            newCamera = Camera(description="ESP32")
             db.session.add(newCamera)
             db.session.commit()
             mqtt_client.publish(f"newID/{newCamera.id}", newCamera.id)  # Publish the new camera's ID to the topic newID
@@ -58,10 +58,12 @@ def init_mqtt_handlers(app, mqtt_client):
                 if product.name in objects:
                     app.logger.info(f" Product {product.name} is already present on shelves")
                     newCameraProduct = Camera_Product(camera_id=newCamera.id, product_id=product.id)
-                    newProductShelf = Product_Shelf(product_id=product.id, shelf_number=newCamera.shelf_number)
+                    if newCamera.shelf_number is not None:
+                        newProductShelf = Product_Shelf(product_id=product.id, shelf_number=newCamera.shelf_number)
                     presenceList[objects.index(product.name)] = True
                     db.session.add(newCameraProduct)
-                    db.session.add(newProductShelf)
+                    if newCamera.shelf_number is not None:
+                        db.session.add(newProductShelf)
                     db.session.commit()
             for i in range(len(objects)):
                 if presenceList[i] == False:

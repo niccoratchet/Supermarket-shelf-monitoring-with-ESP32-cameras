@@ -10,7 +10,7 @@ class Shelf(db.Model):          # This class represents the Shelf table in the d
 class Camera(db.Model):         # This class represents the Camera table in the database
     __tablename__ = 'camera'
     id = db.Column(db.Integer, primary_key=True)
-    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), nullable=False)
+    shelf_number = db.Column(db.Text, db.ForeignKey('shelf.number'), nullable=True)
     description = db.Column(db.Text, nullable=True)
     image_path = db.Column(db.Text, nullable=True)
     last_update = db.Column(db.DateTime, nullable=True)             # It indicates when the recognition was done for the last time
