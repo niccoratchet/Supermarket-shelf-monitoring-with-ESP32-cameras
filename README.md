@@ -1,7 +1,7 @@
 # SUPERMARKET SHELF MONITORING (with ESP32 cameras)
 
 Questa repository contiene il codice creato dallo studente Redi Niccolo' per il conseguimento dell'esame di Progettazione e Produzione Multimediale (PPM). Il corso è stato svolto presso l'Università degli Studi di Firenze ed e' diretto dal Prof. Bertini.  
-Il progetto ha il nome di "Supermarket shelf monitoring" ed è infatti un'applicazione web per il monitoraggio da remoto degli scaffali di un supermercato utilizzando dispositivi embedded a basso costo basati sulla collaudata piattaforma ESP32.  
+Il progetto ha il nome di "Supermarket shelves monitoring" ed è infatti un'applicazione web per il monitoraggio da remoto degli scaffali di un supermercato utilizzando dispositivi embedded a basso costo basati sulla collaudata piattaforma ESP32.  
 Per poter funzionare, l'applicazione è composta da tre parti principali: <br />
 1. Un programma C/C++ che gira sul dispositivo basato su ESP32 (per i test è stata utilizzata la Timer Camera F di M5Stack). A periodi di tempo prestabiliti, il dispositivo effettua il riconoscimento degli oggetti sulla foto scattata grazie ad un
    modello ML. Il modello è stato creato grazie al framework online Edge Impulse (https://edgeimpulse.com/) ed è stato allenato con degli oggetti che potenzialmente possono essere presenti su uno scaffale (ad esempio una confezione di panna da cucina).
@@ -12,10 +12,9 @@ Per poter funzionare, l'applicazione è composta da tre parti principali: <br />
 3. Un front-end che si occupa di fornire le informazioni all'utente sullo stato di tutti gli scaffali monitorati. Grazie infatti alle informazioni date dal back-end, e' possibile vedere per ogni scaffale quali e quanti prodotti sono presenti,
    la foto sulla quale si basa il riconoscimento e il tempo passato dall'ultimo aggiornamento.
 
-Per il backend vengono utilizzati 4 container Docker che gestiscono 4 servizi distinti. In particolare abbiamo il container:
+Per il backend vengono utilizzati 3 container Docker che gestiscono 3 servizi distinti. In particolare abbiamo il container:
 1. Flask WebServer
 2. PostGreSQL
 3. pgAdmin (per gestire il DB attraverso un'interfaccia web)
-4. mqtt-broker (in particolare viene usato mosquitto)
 
 La parte frontend è stata invece sviluppata usando Bootstrap.
