@@ -122,7 +122,7 @@ async function fetchShelves() {
     }
 }
 
-// Event listener for the logout button
+// Add an event listener to the DOMContentLoaded event to fetch shelves data when the page is loaded
 document.addEventListener('DOMContentLoaded', function() {
     fetchShelves();
 });

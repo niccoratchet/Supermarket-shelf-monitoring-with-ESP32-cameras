@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Intercept form submission to handle camera updates
     updateShelfForm.addEventListener("submit", function(event) {
-        event.preventDefault();                                     // Prevent browser default form submission in order to handle dele
+        event.preventDefault();                                     // Prevent browser default form submission in order to handle it with this script
 
         const formData = new FormData(updateShelfForm);             // Create a FormData object to extract form data from the HTML form
 
@@ -50,8 +50,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (response.ok) {
             window.location.href = '/home';  // Redirect to home on success
         } else {
-            return response.json().then(data => {  // Leggi il JSON di errore
-                alert(data.error);  // Visualizza il messaggio specifico
+            return response.json().then(data => {
+                alert(data.error);                  // Display error message if server returns one
             });
         }
 })

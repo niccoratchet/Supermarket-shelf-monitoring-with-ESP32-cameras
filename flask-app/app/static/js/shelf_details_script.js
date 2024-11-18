@@ -3,18 +3,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const backButton = document.getElementById("backBtn");
     const deleteButton = document.getElementById("deleteBtn");
 
-    // Funzione per tornare alla home
+    // Function to go back to the home page
     backButton.addEventListener("click", () => {
         window.location.href = "/home";
     });
 
-    // Funzione per modificare lo scaffale
+    // Function to redirect to the form to update the shelf
     editButton.addEventListener("click", () => {
         const shelfNumber = deleteButton.dataset.shelfNumber;
         window.location.href = `/update_shelf_form/${shelfNumber}`;
     });
 
-    // Funzione per eliminare lo scaffale
+    // Function to delete the shelf
     deleteButton.addEventListener("click", () => {
         const shelfNumber = deleteButton.dataset.shelfNumber;
         if (confirm("Are you sure you want to delete this shelf?")) {
